@@ -12,6 +12,7 @@ type FlagSet struct {
 	Parsed      bool
 	ParsedFlags map[string]bool
 	Flags       map[string]*Flag
+	Style       ParseStyle
 }
 
 type Flag struct {
@@ -26,6 +27,7 @@ func NewFlagSet(name string) *FlagSet {
 		Parsed:      false,
 		ParsedFlags: make(map[string]bool),
 		Flags:       make(map[string]*Flag),
+		Style:       MODERN,
 	}
 }
 
@@ -47,8 +49,13 @@ func (fs *FlagSet) HasFlag(name string) bool {
 	return ok
 }
 
-func (fs *FlagSet) GetNextValue(args_to_parse []string, current_index int, flag_name string) (string, error) {
-	f_value, _ := GetArg(args_to_parse, current_index+1)
+func (fs *FlagSet) SetStyle(style ParseStyle) {
+	fs.Style = style
+}
+
+func (fs *FlagSet) GetNextValue(args_copy []string, i int) (string, error) {
+	f_value, _ := GetArg(args_copy, i+1)
+	flag_name := args_copy[i]
 
 	if f_value == "" {
 		return "", NewEmptyFlagValueError(flag_name)

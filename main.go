@@ -30,7 +30,7 @@ func main() {
 	}
 
 	action := args[1]
-	args_to_parse := args[2:]
+	args_to_parse := args[1:]
 
 	get := NewFlagSet("get")
 	get.Bool("all", false)
@@ -38,6 +38,7 @@ func main() {
 	get.Bool("help", false)
 	get.Int("score", 0)
 	get.Float("pi", 3.1416)
+	get.SetStyle(UNIX)
 
 	if action == "get" {
 		err := get.ParseFlags(args_to_parse)
@@ -89,20 +90,38 @@ func main() {
 	}
 }
 
-func (fs *FlagSet) ParseFlags(_args []string) error {
-	argscp := Copy(_args)
+func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
+	fs.Parsed = true
+	args_copy := Copy(args_to_parse)
 
 	// clean args
-	for i, v := range argscp {
-		argscp[i] = Clean(v)
+	for i, v := range args_copy {
+		args_copy[i] = Clean(v)
 	}
 
-	for i, arg := range argscp {
-		if !fs.IsFlagName(arg) { // Ignore unknown flags
-			continue
-		}
+	for i, arg := range args_copy {
+		var flag_name string
+		var f_value string
+		var f_value_err error
 
-		flag_name := arg
+		if fs.Style == MODERN {
+
+			flag_name = arg
+			if !fs.IsFlagName(arg) { // Ignore unknown flags
+				continue
+			}
+
+			f_value, f_value_err = fs.GetNextValue(args_copy, i)
+
+		} else if fs.Style == UNIX {
+
+			flag_name, f_value, f_value_err = ExtractValues(arg)
+
+			if !fs.IsFlagName(flag_name) { // Ignore unknown flags
+				continue
+
+			}
+		}
 
 		f := fs.Flags[flag_name]
 
@@ -110,24 +129,32 @@ func (fs *FlagSet) ParseFlags(_args []string) error {
 		case "bool":
 			f.Value = true
 		case "string":
-			f_value, err := fs.GetNextValue(_args, i, flag_name)
-			if err != nil {
-				return err
+			if f_value_err != nil {
+				return f_value_err
 			}
+
 			f.Value = f_value
 		case "int":
-			f_value, err := fs.GetNextValue(_args, i, flag_name)
+			if f_value_err != nil {
+				return f_value_err
+			}
+
+			value, err := strconv.Atoi(f_value)
 			if err != nil {
 				return err
 			}
-			value, _ := strconv.Atoi(f_value)
+
 			f.Value = value
 		case "float":
-			f_value, err := fs.GetNextValue(_args, i, flag_name)
+			if f_value_err != nil {
+				return f_value_err
+			}
+
+			value, err := strconv.ParseFloat(f_value, 64)
 			if err != nil {
 				return err
 			}
-			value, _ := strconv.ParseFloat(f_value, 64)
+
 			f.Value = value
 		default:
 			return NewUnexpectedDataTypeError(f.Datatype, f.Name)

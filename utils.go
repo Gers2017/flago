@@ -32,12 +32,12 @@ func IsShortFlag(s string) bool {
 	return IsFlag(s) && strings.Count(s, "-") == 1
 }
 
-func ExtractValues(s string) (string, string) {
+func ExtractValues(s string) (string, string, error) {
 	parts := strings.Split(s, "=")
 
 	if len(parts) <= 1 {
-		return s, ""
+		return parts[0], "", NewInvalidFlagValueError(parts[0], "")
 	}
 
-	return parts[0], parts[1]
+	return parts[0], parts[1], nil
 }

@@ -27,5 +27,5 @@ func NewInvalidFlagValueError(flag, value string) *InvalidFlagValueError {
 }
 
 func (err *InvalidFlagValueError) Error() string {
-	return fmt.Sprintf("Invalid value for flag \"%s\". \"%s\" is a registered flag", err.flag, err.value)
+	return fmt.Sprintf("Invalid value \"%s\" for flag: %s", err.value, err.flag)
 }
