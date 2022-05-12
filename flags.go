@@ -1,4 +1,4 @@
-package main
+package flago
 
 type ParseStyle string
 
