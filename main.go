@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"sort"
 	"strconv"
 )
 
@@ -20,6 +18,7 @@ const (
 	ROOT_HELP      = "<Prints root help>"
 	GET_ALL_HELP   = "<Prints get all help>"
 	GET_SCORE_HELP = "<Prints get score help>"
+	GET_PI_HELP    = "<Prints get pi help>"
 	GET_TITLE_HELP = "<Prints get title help>"
 )
 
@@ -29,25 +28,22 @@ func main() {
 	if len(args) <= 1 {
 		return
 	}
-	ls := []string{"all", "non", "mom", "score", "help"}
-	sort.Slice(ls, func(i, j int) bool {
-		return ls[i] < ls[j]
-	})
 
 	action := args[1]
 	args_to_parse := args[2:]
 
 	get := NewFlagSet("get")
-	get.Int("score", 0)
 	get.Bool("all", false)
 	get.Str("title", "")
 	get.Bool("help", false)
-	get._addFlag("bubu", NewFlag("bubu", 9.0, "float"))
+	get.Int("score", 0)
+	get.Float("pi", 3.1416)
 
 	if action == "get" {
 		err := get.ParseFlags(args_to_parse)
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return
 		}
 		isHelp := get.GetBool("help")
 
@@ -78,6 +74,15 @@ func main() {
 
 			fmt.Println("Score:", get.GetInt("score"))
 
+		} else if get.HasFlag("pi") {
+
+			if isHelp {
+				fmt.Println(GET_PI_HELP)
+				return
+			}
+
+			fmt.Println("Pi is:", get.GetFloat("pi"))
+
 		} else if isHelp {
 			fmt.Println(ROOT_HELP)
 		}
@@ -97,28 +102,38 @@ func (fs *FlagSet) ParseFlags(_args []string) error {
 			continue
 		}
 
-		f := fs.Flags[arg]
-		fs.ParsedFlags[arg] = true
+		flag_name := arg
+
+		f := fs.Flags[flag_name]
 
 		switch f.Datatype {
 		case "bool":
 			f.Value = true
 		case "string":
-			f_value, _ := GetArg(_args, i+1)
-			if fs.IsFlagName(f_value) {
-				return NewInvalidFlagValueError(arg, f_value)
+			f_value, err := fs.GetNextValue(_args, i, flag_name)
+			if err != nil {
+				return err
 			}
 			f.Value = f_value
 		case "int":
-			f_value, _ := GetArg(_args, i+1)
-			if fs.IsFlagName(f_value) {
-				return NewInvalidFlagValueError(arg, f_value)
+			f_value, err := fs.GetNextValue(_args, i, flag_name)
+			if err != nil {
+				return err
 			}
 			value, _ := strconv.Atoi(f_value)
+			f.Value = value
+		case "float":
+			f_value, err := fs.GetNextValue(_args, i, flag_name)
+			if err != nil {
+				return err
+			}
+			value, _ := strconv.ParseFloat(f_value, 64)
 			f.Value = value
 		default:
 			return NewUnexpectedDataTypeError(f.Datatype, f.Name)
 		}
+
+		fs.ParsedFlags[flag_name] = true
 	}
 
 	fmt.Println("---- ---- ----")

@@ -47,12 +47,29 @@ func (fs *FlagSet) HasFlag(name string) bool {
 	return ok
 }
 
+func (fs *FlagSet) GetNextValue(args_to_parse []string, current_index int, flag_name string) (string, error) {
+	f_value, _ := GetArg(args_to_parse, current_index+1)
+
+	if f_value == "" {
+		return "", NewEmptyFlagValueError(flag_name)
+	}
+
+	if fs.IsFlagName(f_value) {
+		return "", NewInvalidFlagValueError(flag_name, f_value)
+	}
+	return f_value, nil
+}
+
 func (fs *FlagSet) _addFlag(name string, f *Flag) {
 	fs.Flags[name] = f
 }
 
 func (fs *FlagSet) Int(name string, init int) {
 	fs._addFlag(name, NewFlag(name, init, "int"))
+}
+
+func (fs *FlagSet) Float(name string, init float64) {
+	fs._addFlag(name, NewFlag(name, init, "float"))
 }
 
 func (fs *FlagSet) Bool(name string, init bool) {
@@ -87,6 +104,14 @@ func (fs *FlagSet) GetInt(key string) int {
 		return 0
 	}
 	return TryGetType[int](f.Value)
+}
+
+func (fs *FlagSet) GetFloat(key string) float64 {
+	f, ok := fs.Flags[key]
+	if !ok {
+		return 0
+	}
+	return TryGetType[float64](f.Value)
 }
 
 func (fs *FlagSet) GetStr(key string) string {

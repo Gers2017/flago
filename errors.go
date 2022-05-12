@@ -13,6 +13,10 @@ func NewUnexpectedDataTypeError(datatype, flagName string) error {
 	return errors.New(fmt.Sprintf("Unexpected datatype \"%s\" for flag of name %s", datatype, flagName))
 }
 
+func NewEmptyFlagValueError(flag string) error {
+	return errors.New(fmt.Sprintf("Invalid value for flag \"%s\". Flag value cannot be empty\n", flag))
+}
+
 type InvalidFlagValueError struct {
 	flag  string
 	value string
@@ -23,5 +27,5 @@ func NewInvalidFlagValueError(flag, value string) *InvalidFlagValueError {
 }
 
 func (err *InvalidFlagValueError) Error() string {
-	return fmt.Sprintf("Invalid value for flag \"%s\". Value \"%s\" is a registered flag", err.flag, err.value)
+	return fmt.Sprintf("Invalid value for flag \"%s\". \"%s\" is a registered flag", err.flag, err.value)
 }

@@ -25,11 +25,11 @@ func GetArg(args []string, i int) (string, bool) {
 }
 
 func IsFlag(s string) bool {
-	return strings.HasPrefix(s, "-")
+	return strings.HasPrefix(s, "-") && len(s) > 1
 }
 
 func IsShortFlag(s string) bool {
-	return IsFlag(s) && len(s) > 1 && strings.Count(s, "-") == 1
+	return IsFlag(s) && strings.Count(s, "-") == 1
 }
 
 func ExtractValues(s string) (string, string) {
