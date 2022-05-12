@@ -1,10 +1,10 @@
 package main
 
-type ParseStyle int
+type ParseStyle string
 
 const (
-	MODERN ParseStyle = 1
-	UNIX   ParseStyle = 2
+	MODERN ParseStyle = "MODERN"
+	UNIX   ParseStyle = "UNIX"
 )
 
 type FlagSet struct {
@@ -53,18 +53,17 @@ func (fs *FlagSet) SetStyle(style ParseStyle) {
 	fs.Style = style
 }
 
-func (fs *FlagSet) GetNextValue(args_copy []string, i int) (string, error) {
-	f_value, _ := GetArg(args_copy, i+1)
-	flag_name := args_copy[i]
-
+func (fs *FlagSet) _validateFlagValue(f_name, f_value string) error {
 	if f_value == "" {
-		return "", NewEmptyFlagValueError(flag_name)
+		return NewEmptyFlagValueError(f_name)
 	}
 
-	if fs.IsFlagName(f_value) {
-		return "", NewInvalidFlagValueError(flag_name, f_value)
+	// Checks if the f_value is another flag (except for the help flag) only in MODERN style
+	if fs.IsFlagName(f_value) && fs.Style == MODERN && f_value != "help" {
+		return NewInvalidFlagAsValueError(f_name, f_value)
 	}
-	return f_value, nil
+
+	return nil
 }
 
 func (fs *FlagSet) _addFlag(name string, f *Flag) {

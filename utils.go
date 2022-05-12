@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -24,20 +25,31 @@ func GetArg(args []string, i int) (string, bool) {
 	return args[i], true
 }
 
-func IsFlag(s string) bool {
-	return strings.HasPrefix(s, "-") && len(s) > 1
+func GetNextValue(args_copy []string, i int) string {
+	f_value, _ := GetArg(args_copy, i+1)
+	return f_value
 }
 
-func IsShortFlag(s string) bool {
-	return IsFlag(s) && strings.Count(s, "-") == 1
-}
+func ExtractValues(flag string) (string, string) {
+	f_parts := strings.Split(flag, "=")
 
-func ExtractValues(s string) (string, string, error) {
-	parts := strings.Split(s, "=")
-
-	if len(parts) <= 1 {
-		return parts[0], "", NewInvalidFlagValueError(parts[0], "")
+	if len(f_parts) < 2 {
+		return flag, ""
 	}
 
-	return parts[0], parts[1], nil
+	f_name, f_value := f_parts[0], strings.Join(f_parts[1:], "")
+
+	if f_value == "" {
+		return f_name, f_value
+	}
+
+	return f_name, f_value
+}
+
+func ParseInt(s string) (int, error) {
+	return strconv.Atoi(s)
+}
+
+func ParseFloat(s string) (float64, error) {
+	return strconv.ParseFloat(s, 64)
 }

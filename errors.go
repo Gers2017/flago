@@ -6,7 +6,7 @@ import (
 )
 
 func NewParseError(value, datatype string) error {
-	return errors.New(fmt.Sprintf("Error at parsing %s to %s\n", value, datatype))
+	return errors.New(fmt.Sprintf("Error at parsing value \"%s\" to datatype %s\n", value, datatype))
 }
 
 func NewUnexpectedDataTypeError(datatype, flagName string) error {
@@ -17,15 +17,15 @@ func NewEmptyFlagValueError(flag string) error {
 	return errors.New(fmt.Sprintf("Invalid value for flag \"%s\". Flag value cannot be empty\n", flag))
 }
 
-type InvalidFlagValueError struct {
+type InvalidFlagAsValueError struct {
 	flag  string
 	value string
 }
 
-func NewInvalidFlagValueError(flag, value string) *InvalidFlagValueError {
-	return &InvalidFlagValueError{flag, value}
+func NewInvalidFlagAsValueError(flag, value string) *InvalidFlagAsValueError {
+	return &InvalidFlagAsValueError{flag, value}
 }
 
-func (err *InvalidFlagValueError) Error() string {
+func (err *InvalidFlagAsValueError) Error() string {
 	return fmt.Sprintf("Invalid value \"%s\" for flag: %s", err.value, err.flag)
 }

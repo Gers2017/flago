@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 )
 
 /*
@@ -15,11 +14,11 @@ import (
 */
 
 const (
-	ROOT_HELP      = "<Prints root help>"
-	GET_ALL_HELP   = "<Prints get all help>"
-	GET_SCORE_HELP = "<Prints get score help>"
-	GET_PI_HELP    = "<Prints get pi help>"
-	GET_TITLE_HELP = "<Prints get title help>"
+	ROOT_HELP       = "<Prints root help>"
+	GET_ALL_HELP    = "<Prints get all help>"
+	GET_SCORE_HELP  = "<Prints get score help>"
+	GET_RADIAN_HELP = "<Prints get radian help>"
+	GET_TITLE_HELP  = "<Prints get title help>"
 )
 
 func main() {
@@ -37,8 +36,8 @@ func main() {
 	get.Str("title", "")
 	get.Bool("help", false)
 	get.Int("score", 0)
-	get.Float("pi", 3.1416)
-	get.SetStyle(UNIX)
+	get.Float("radian", 3.1416)
+	get.SetStyle(MODERN)
 
 	if action == "get" {
 		err := get.ParseFlags(args_to_parse)
@@ -46,6 +45,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
+
 		isHelp := get.GetBool("help")
 
 		if get.HasFlag("all") {
@@ -72,17 +72,17 @@ func main() {
 				fmt.Println(GET_SCORE_HELP)
 				return
 			}
+			score := get.GetInt("score")
+			fmt.Println("Score:", score)
 
-			fmt.Println("Score:", get.GetInt("score"))
-
-		} else if get.HasFlag("pi") {
+		} else if get.HasFlag("radian") {
 
 			if isHelp {
-				fmt.Println(GET_PI_HELP)
+				fmt.Println(GET_RADIAN_HELP)
 				return
 			}
 
-			fmt.Println("Pi is:", get.GetFloat("pi"))
+			fmt.Println("Radian is:", get.GetFloat("radian"))
 
 		} else if isHelp {
 			fmt.Println(ROOT_HELP)
@@ -102,26 +102,30 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 	for i, arg := range args_copy {
 		var flag_name string
 		var f_value string
-		var f_value_err error
 
 		if fs.Style == MODERN {
+			// --- MODERN STYLE
 
 			flag_name = arg
-			if !fs.IsFlagName(arg) { // Ignore unknown flags
+			if !fs.IsFlagName(flag_name) { // Skip non flag args
 				continue
 			}
+			f_value = GetNextValue(args_copy, i)
 
-			f_value, f_value_err = fs.GetNextValue(args_copy, i)
-
+			// ----
 		} else if fs.Style == UNIX {
+			// --- UNIX STYLE
 
-			flag_name, f_value, f_value_err = ExtractValues(arg)
-
-			if !fs.IsFlagName(flag_name) { // Ignore unknown flags
+			flag_name, f_value = ExtractValues(arg)
+			if !fs.IsFlagName(flag_name) { // Skip non flag args
 				continue
-
 			}
+
+			// ----
 		}
+
+		f_err := fs._validateFlagValue(flag_name, f_value)
+		is_skip_parse := f_value == "help"
 
 		f := fs.Flags[flag_name]
 
@@ -129,30 +133,42 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 		case "bool":
 			f.Value = true
 		case "string":
-			if f_value_err != nil {
-				return f_value_err
+			if f_err != nil {
+				return f_err
+			}
+
+			if is_skip_parse {
+				break
 			}
 
 			f.Value = f_value
 		case "int":
-			if f_value_err != nil {
-				return f_value_err
+			if f_err != nil {
+				return f_err
 			}
 
-			value, err := strconv.Atoi(f_value)
+			if is_skip_parse {
+				break
+			}
+
+			value, err := ParseInt(f_value)
 			if err != nil {
-				return err
+				return NewParseError(f_value, "int")
 			}
 
 			f.Value = value
 		case "float":
-			if f_value_err != nil {
-				return f_value_err
+			if f_err != nil {
+				return f_err
 			}
 
-			value, err := strconv.ParseFloat(f_value, 64)
+			if is_skip_parse {
+				break
+			}
+
+			value, err := ParseFloat(f_value)
 			if err != nil {
-				return err
+				return NewParseError(f_value, "float")
 			}
 
 			f.Value = value
