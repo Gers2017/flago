@@ -1,116 +1,98 @@
 package main
 
-import (
-	"errors"
-	"fmt"
-	"strconv"
-	"strings"
+type ParseStyle int
+
+const (
+	MODERN ParseStyle = 1
+	UNIX   ParseStyle = 2
 )
 
 type FlagSet struct {
-	Name   string
-	Parsed bool
-	Args   []string
-	Flags  map[string]*Flag
+	Name        string
+	Parsed      bool
+	ParsedFlags map[string]bool
+	Flags       map[string]*Flag
 }
 
 type Flag struct {
-	Name         string
-	Value        any
-	DefaultValue any
-	Datatype     string
-}
-
-func NewParseError(value, datatype string) error {
-	return errors.New(fmt.Sprintf("Error at parsing %s to %s\n", value, datatype))
-}
-
-func NewEmptyFlagValueError(f string) error {
-	return errors.New(fmt.Sprintf("Empty value after flag %s\n", f))
-}
-
-var parseError = errors.New("parse error")
-
-func NewFlag(name string, defaultValue any, datatype string) *Flag {
-	return &Flag{Name: name, Value: defaultValue, DefaultValue: defaultValue, Datatype: datatype}
+	Name     string
+	Value    any
+	Datatype string
 }
 
 func NewFlagSet(name string) *FlagSet {
-	return &FlagSet{Name: name, Parsed: false, Args: make([]string, 0), Flags: make(map[string]*Flag)}
-}
-
-func (f *FlagSet) AddFlag(name string, variants string, defaultValue any, datatype string) {
-	flag := NewFlag(name, defaultValue, datatype)
-	for _, variant := range strings.Split(variants, " ") {
-		f.Flags[variant] = flag
+	return &FlagSet{
+		Name:        name,
+		Parsed:      false,
+		ParsedFlags: make(map[string]bool),
+		Flags:       make(map[string]*Flag),
 	}
 }
 
-func (f *FlagSet) GetFlag(k string) (*Flag, bool) {
-	v, ok := f.Flags[k]
-	return v, ok
+func NewFlag(name string, defaultValue any, datatype string) *Flag {
+	return &Flag{
+		Name:     name,
+		Value:    defaultValue,
+		Datatype: datatype,
+	}
 }
 
-func (f *FlagSet) Parse(args []string) error {
-	f.Parsed = false
-	f.Args = args
+func (fs *FlagSet) IsFlagName(name string) bool {
+	_, ok := fs.Flags[name]
+	return ok
+}
 
-	for _, arg := range args {
-		if !IsFlag(arg) {
-			continue
-		}
+func (fs *FlagSet) HasFlag(name string) bool {
+	_, ok := fs.ParsedFlags[name]
+	return ok
+}
 
-		arg = Clean(arg)
-		f_arg, f_value := ExtractValues(arg)
+func (fs *FlagSet) _addFlag(name string, f *Flag) {
+	fs.Flags[name] = f
+}
 
-		f, exits := f.GetFlag(f_arg)
+func (fs *FlagSet) Int(name string, init int) {
+	fs._addFlag(name, NewFlag(name, init, "int"))
+}
 
-		if !exits {
-			continue
-		}
+func (fs *FlagSet) Bool(name string, init bool) {
+	fs._addFlag(name, NewFlag(name, init, "bool"))
+}
 
-		switch f.Datatype {
-		case "bool":
-			f.Value = true
+func (fs *FlagSet) Str(name string, init string) {
+	fs._addFlag(name, NewFlag(name, init, "string"))
+}
 
-		case "string":
-			if f_value == "" {
-				return NewEmptyFlagValueError(f_arg)
-			}
+func TryGetType[T any](v any) T {
+	t, ok := v.(T)
+	if !ok {
+		var def T
+		return def
+	}
+	return t
+}
 
-			f.Value = f_value
-
-		case "int":
-			v, err := strconv.ParseInt(f_value, 0, 64)
-
-			if f_value == "" {
-				return NewEmptyFlagValueError(f_arg)
-			}
-
-			if err != nil {
-				return NewParseError(f_value, f.Datatype)
-			}
-
-			f.Value = v
-
-		case "float":
-			v, err := strconv.ParseFloat(f_value, 64)
-
-			if f_value == "" {
-				return NewEmptyFlagValueError(f_arg)
-			}
-
-			if err != nil {
-				return NewParseError(f_value, f.Datatype)
-			}
-
-			f.Value = v
-		}
+func (fs *FlagSet) GetBool(key string) bool {
+	f, ok := fs.Flags[key]
+	if !ok {
+		return false
 	}
 
-	for k, f := range f.Flags {
-		fmt.Printf("[%s] -> %v - %T\n", k, f.Value, f.Value)
-	}
+	return TryGetType[bool](f.Value)
+}
 
-	return nil
+func (fs *FlagSet) GetInt(key string) int {
+	f, ok := fs.Flags[key]
+	if !ok {
+		return 0
+	}
+	return TryGetType[int](f.Value)
+}
+
+func (fs *FlagSet) GetStr(key string) string {
+	f, ok := fs.Flags[key]
+	if !ok {
+		return ""
+	}
+	return TryGetType[string](f.Value)
 }

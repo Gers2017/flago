@@ -1,6 +1,16 @@
 package main
 
-import "strings"
+import (
+	"strings"
+)
+
+func Copy[T any](slice []T) []T {
+	cp := make([]T, len(slice))
+	for i, v := range slice {
+		cp[i] = v
+	}
+	return cp
+}
 
 func Clean(s string) string {
 	s = strings.Trim(s, " ")
