@@ -39,7 +39,7 @@ func NewFlag(name string, defaultValue any, datatype string) *Flag {
 	}
 }
 
-func (fs *FlagSet) IsFlagName(name string) bool {
+func (fs *FlagSet) isFlagName(name string) bool {
 	_, ok := fs.Flags[name]
 	return ok
 }
@@ -53,40 +53,40 @@ func (fs *FlagSet) SetStyle(style ParseStyle) {
 	fs.Style = style
 }
 
-func (fs *FlagSet) _validateFlagValue(f_name, f_value string) error {
+func (fs *FlagSet) validateFlagValue(f_name, f_value string) error {
 	if f_value == "" {
-		return NewEmptyFlagValueError(f_name)
+		return newEmptyFlagValueError(f_name)
 	}
 
 	// Checks if the f_value is another flag (except for the help flag) only in MODERN style
-	if fs.IsFlagName(f_value) && fs.Style == MODERN && f_value != "help" {
-		return NewInvalidFlagAsValueError(f_name, f_value)
+	if fs.isFlagName(f_value) && fs.Style == MODERN && f_value != "help" {
+		return newInvalidFlagAsValueError(f_name, f_value)
 	}
 
 	return nil
 }
 
-func (fs *FlagSet) _addFlag(name string, f *Flag) {
+func (fs *FlagSet) addFlag(name string, f *Flag) {
 	fs.Flags[name] = f
 }
 
 func (fs *FlagSet) Int(name string, init int) {
-	fs._addFlag(name, NewFlag(name, init, "int"))
+	fs.addFlag(name, NewFlag(name, init, "int"))
 }
 
 func (fs *FlagSet) Float(name string, init float64) {
-	fs._addFlag(name, NewFlag(name, init, "float"))
+	fs.addFlag(name, NewFlag(name, init, "float"))
 }
 
 func (fs *FlagSet) Bool(name string, init bool) {
-	fs._addFlag(name, NewFlag(name, init, "bool"))
+	fs.addFlag(name, NewFlag(name, init, "bool"))
 }
 
 func (fs *FlagSet) Str(name string, init string) {
-	fs._addFlag(name, NewFlag(name, init, "string"))
+	fs.addFlag(name, NewFlag(name, init, "string"))
 }
 
-func TryGetType[T any](v any) T {
+func tryGetType[T any](v any) T {
 	t, ok := v.(T)
 	if !ok {
 		var def T
@@ -101,7 +101,7 @@ func (fs *FlagSet) GetBool(key string) bool {
 		return false
 	}
 
-	return TryGetType[bool](f.Value)
+	return tryGetType[bool](f.Value)
 }
 
 func (fs *FlagSet) GetInt(key string) int {
@@ -109,7 +109,7 @@ func (fs *FlagSet) GetInt(key string) int {
 	if !ok {
 		return 0
 	}
-	return TryGetType[int](f.Value)
+	return tryGetType[int](f.Value)
 }
 
 func (fs *FlagSet) GetFloat(key string) float64 {
@@ -117,7 +117,7 @@ func (fs *FlagSet) GetFloat(key string) float64 {
 	if !ok {
 		return 0
 	}
-	return TryGetType[float64](f.Value)
+	return tryGetType[float64](f.Value)
 }
 
 func (fs *FlagSet) GetStr(key string) string {
@@ -125,5 +125,5 @@ func (fs *FlagSet) GetStr(key string) string {
 	if !ok {
 		return ""
 	}
-	return TryGetType[string](f.Value)
+	return tryGetType[string](f.Value)
 }

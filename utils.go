@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func Copy[T any](slice []T) []T {
+func copy[T any](slice []T) []T {
 	cp := make([]T, len(slice))
 	for i, v := range slice {
 		cp[i] = v
@@ -13,24 +13,24 @@ func Copy[T any](slice []T) []T {
 	return cp
 }
 
-func Clean(s string) string {
+func clean(s string) string {
 	s = strings.Trim(s, " ")
 	return strings.ReplaceAll(s, "-", "")
 }
 
-func GetArg(args []string, i int) (string, bool) {
+func getArg(args []string, i int) (string, bool) {
 	if len(args) <= i {
 		return "", false
 	}
 	return args[i], true
 }
 
-func GetNextValue(args_copy []string, i int) string {
-	f_value, _ := GetArg(args_copy, i+1)
+func getNextValue(args_copy []string, i int) string {
+	f_value, _ := getArg(args_copy, i+1)
 	return f_value
 }
 
-func ExtractValues(flag string) (string, string) {
+func extractValues(flag string) (string, string) {
 	f_parts := strings.Split(flag, "=")
 
 	if len(f_parts) < 2 {
@@ -46,10 +46,10 @@ func ExtractValues(flag string) (string, string) {
 	return f_name, f_value
 }
 
-func ParseInt(s string) (int, error) {
+func parseInt(s string) (int, error) {
 	return strconv.Atoi(s)
 }
 
-func ParseFloat(s string) (float64, error) {
+func parseFloat(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
