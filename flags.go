@@ -7,6 +7,15 @@ const (
 	UNIX   ParseStyle = "UNIX"
 )
 
+type Datatype string
+
+const (
+	INT    Datatype = "int"
+	FLOAT  Datatype = "float"
+	BOOL   Datatype = "bool"
+	STRING Datatype = "string"
+)
+
 type FlagSet struct {
 	Name        string
 	Parsed      bool
@@ -18,7 +27,7 @@ type FlagSet struct {
 type Flag struct {
 	Name     string
 	Value    any
-	Datatype string
+	Datatype Datatype
 }
 
 func NewFlagSet(name string) *FlagSet {
@@ -31,7 +40,7 @@ func NewFlagSet(name string) *FlagSet {
 	}
 }
 
-func NewFlag(name string, defaultValue any, datatype string) *Flag {
+func NewFlag(name string, defaultValue any, datatype Datatype) *Flag {
 	return &Flag{
 		Name:     name,
 		Value:    defaultValue,
@@ -71,19 +80,19 @@ func (fs *FlagSet) addFlag(name string, f *Flag) {
 }
 
 func (fs *FlagSet) Int(name string, init int) {
-	fs.addFlag(name, NewFlag(name, init, "int"))
+	fs.addFlag(name, NewFlag(name, init, INT))
 }
 
 func (fs *FlagSet) Float(name string, init float64) {
-	fs.addFlag(name, NewFlag(name, init, "float"))
+	fs.addFlag(name, NewFlag(name, init, FLOAT))
 }
 
 func (fs *FlagSet) Bool(name string, init bool) {
-	fs.addFlag(name, NewFlag(name, init, "bool"))
+	fs.addFlag(name, NewFlag(name, init, BOOL))
 }
 
 func (fs *FlagSet) Str(name string, init string) {
-	fs.addFlag(name, NewFlag(name, init, "string"))
+	fs.addFlag(name, NewFlag(name, init, STRING))
 }
 
 func tryGetType[T any](v any) T {

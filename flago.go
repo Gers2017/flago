@@ -83,7 +83,7 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 
 			f.Value = value
 		default:
-			return newUnexpectedDataTypeError(f.Datatype, f.Name)
+			return newUnexpectedDataTypeError(string(f.Datatype), f.Name)
 		}
 
 		fs.ParsedFlags[flag_name] = true
