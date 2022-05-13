@@ -31,16 +31,9 @@ func getNextValue(args_copy []string, i int) string {
 }
 
 func extractValues(flag string) (string, string) {
-	f_parts := strings.Split(flag, "=")
-
-	if len(f_parts) < 2 {
+	f_name, f_value, ok := strings.Cut(flag, "=")
+	if !ok {
 		return flag, ""
-	}
-
-	f_name, f_value := f_parts[0], strings.Join(f_parts[1:], "")
-
-	if f_value == "" {
-		return f_name, f_value
 	}
 
 	return f_name, f_value
