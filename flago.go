@@ -1,14 +1,12 @@
 package flago
 
-import "fmt"
-
 func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 	fs.Parsed = true
-	args_copy := Copy(args_to_parse)
+	args_copy := copy(args_to_parse)
 
 	// clean args
 	for i, v := range args_copy {
-		args_copy[i] = Clean(v)
+		args_copy[i] = clean(v)
 	}
 
 	for i, arg := range args_copy {
@@ -19,24 +17,24 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 			// --- MODERN STYLE
 
 			flag_name = arg
-			if !fs.IsFlagName(flag_name) { // Skip non flag args
+			if !fs.isFlagName(flag_name) { // Skip if is not a flag
 				continue
 			}
-			f_value = GetNextValue(args_copy, i)
+			f_value = getNextValue(args_copy, i)
 
 			// ----
 		} else if fs.Style == UNIX {
 			// --- UNIX STYLE
 
-			flag_name, f_value = ExtractValues(arg)
-			if !fs.IsFlagName(flag_name) { // Skip non flag args
+			flag_name, f_value = extractValues(arg)
+			if !fs.isFlagName(flag_name) { // Skip if is not a flag
 				continue
 			}
 
 			// ----
 		}
 
-		f_err := fs._validateFlagValue(flag_name, f_value)
+		f_err := fs.validateFlagValue(flag_name, f_value)
 		is_skip_parse := f_value == "help"
 
 		f := fs.Flags[flag_name]
@@ -63,9 +61,9 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 				break
 			}
 
-			value, err := ParseInt(f_value)
+			value, err := parseInt(f_value)
 			if err != nil {
-				return NewParseError(f_value, "int")
+				return newParseError(f_value, "int")
 			}
 
 			f.Value = value
@@ -78,24 +76,18 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 				break
 			}
 
-			value, err := ParseFloat(f_value)
+			value, err := parseFloat(f_value)
 			if err != nil {
-				return NewParseError(f_value, "float")
+				return newParseError(f_value, "float")
 			}
 
 			f.Value = value
 		default:
-			return NewUnexpectedDataTypeError(f.Datatype, f.Name)
+			return newUnexpectedDataTypeError(f.Datatype, f.Name)
 		}
 
 		fs.ParsedFlags[flag_name] = true
 	}
-
-	fmt.Println("---- ---- ----")
-	for k, f := range fs.Flags {
-		fmt.Printf("[%s] -> %v - %T\n", k, f.Value, f.Value)
-	}
-	fmt.Println("---- ---- ----")
 
 	return nil
 }

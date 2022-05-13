@@ -1,11 +1,12 @@
 package flago
 
 import (
+	"strings"
 	"testing"
 )
 
 func TestModernParsing(t *testing.T) {
-	args := []string{"get score 300"}
+	args := strings.Split("get score 300", " ")
 	set := NewFlagSet("get")
 	set.Int("score", 0)
 	set.SetStyle(MODERN)
@@ -26,7 +27,7 @@ func TestModernParsing(t *testing.T) {
 }
 
 func TestUnixParsing(t *testing.T) {
-	args := []string{"score=300"}
+	args := strings.Split("get score=300", " ")
 	set := NewFlagSet("get")
 	set.Int("score", 0)
 	set.SetStyle(UNIX)
@@ -47,7 +48,7 @@ func TestUnixParsing(t *testing.T) {
 
 func TestExtractValues(t *testing.T) {
 	my_unix_flag := "title=The lazy dog"
-	f_name, f_value := ExtractValues(my_unix_flag)
+	f_name, f_value := extractValues(my_unix_flag)
 
 	if f_name != "title" {
 		t.Errorf("Flag name should be title got \"%s\"", f_name)
@@ -62,7 +63,7 @@ func TestIsFlag(t *testing.T) {
 	get := NewFlagSet("get")
 	get.Int("score", 0)
 
-	if !get.IsFlagName("score") {
+	if !get.isFlagName("score") {
 		t.Fatal("Score flag should be reconized")
 	}
 }
@@ -74,11 +75,11 @@ func TestValidateFlagValue(t *testing.T) {
 	get.Int(my_flag, 0)
 	get.Float(other_flag, 39.89)
 
-	if err := get._validateFlagValue(my_flag, other_flag); err == nil {
+	if err := get.validateFlagValue(my_flag, other_flag); err == nil {
 		t.Errorf("Invalid value [%s]. Flag cannot be a value", other_flag)
 	}
 
-	if err := get._validateFlagValue(my_flag, ""); err == nil {
+	if err := get.validateFlagValue(my_flag, ""); err == nil {
 		t.Errorf("Invalid flag value for %s. Flag cannot be empty", my_flag)
 	}
 }
@@ -86,7 +87,7 @@ func TestValidateFlagValue(t *testing.T) {
 func TestInvalidDataType(t *testing.T) {
 	args := []string{"foo"}
 	get := NewFlagSet("get")
-	get._addFlag("foo", NewFlag("foo", false, "nil"))
+	get.addFlag("foo", NewFlag("foo", false, "nil"))
 
 	if err := get.ParseFlags(args); err == nil {
 		t.Error("ParseFlags should return an UnexpectedDataTypeError")
