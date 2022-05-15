@@ -3,8 +3,8 @@ package flago
 type ParseStyle string
 
 const (
-	MODERN ParseStyle = "MODERN"
-	UNIX   ParseStyle = "UNIX"
+	MODERN_STYLE ParseStyle = "MODERN"
+	UNIX_STYLE   ParseStyle = "UNIX"
 )
 
 type DataTypeName string
@@ -43,7 +43,7 @@ func NewFlagSet(name string, helptext string) *FlagSet {
 		Parsed:      false,
 		ParsedFlags: make(map[string]bool),
 		Flags:       make(map[string]*Flag),
-		Style:       MODERN,
+		Style:       MODERN_STYLE,
 		IsHelp:      false,
 		HelpText:    helptext,
 	}
@@ -83,7 +83,7 @@ func (fs *FlagSet) validateFlagValue(flag_name, flag_value string) error {
 	}
 
 	// Checks if the flag_value is another flag (only in MODERN style)
-	if fs.isFlagName(flag_value) && fs.Style == MODERN {
+	if fs.isFlagName(flag_value) && fs.Style == MODERN_STYLE {
 		return newInvalidFlagAsValueError(flag_name, flag_value)
 	}
 

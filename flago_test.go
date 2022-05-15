@@ -28,7 +28,7 @@ func TestHelpParsing(t *testing.T) {
 	set := NewFlagSet("set", SET_CMD_HELP)
 	set.Bool("all", false, SET_ALL_HELP)
 	set.Float("radian", 0.0, SET_RADIAN_HELP)
-	set.SetStyle(MODERN)
+	set.SetStyle(MODERN_STYLE)
 
 	err := set.ParseFlags(args)
 	if err != nil {
@@ -55,7 +55,7 @@ func TestModernParsing(t *testing.T) {
 	set.Int("score", 0, SET_SCORE_HELP)
 	set.Float("radian", 0, SET_RADIAN_HELP)
 	set.Str("title", "", SET_TITLE_HELP)
-	set.SetStyle(MODERN)
+	set.SetStyle(MODERN_STYLE)
 
 	err := set.ParseFlags(args)
 	if err != nil {
@@ -86,7 +86,7 @@ func TestUnixParsing(t *testing.T) {
 	set.Int("score", 0, SET_SCORE_HELP)
 	set.Float("radian", 0, SET_RADIAN_HELP)
 	set.Str("title", "", SET_TITLE_HELP)
-	set.SetStyle(UNIX)
+	set.SetStyle(UNIX_STYLE)
 
 	err := set.ParseFlags(args)
 	if err != nil {

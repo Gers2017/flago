@@ -13,11 +13,11 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 		var flag_value string
 		var is_help bool
 
-		if fs.Style == MODERN {
+		if fs.Style == MODERN_STYLE {
 
 			flag_name, flag_value, is_help = parseFlagModernStyle(arg, args_copy, i)
 
-		} else if fs.Style == UNIX {
+		} else if fs.Style == UNIX_STYLE {
 
 			flag_name, flag_value, is_help = parseFlagUnixStyle(arg)
 

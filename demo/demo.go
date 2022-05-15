@@ -25,12 +25,12 @@ func main() {
 	action := args[1]
 	args_to_parse := args[1:]
 
-	set := flago.NewFlagSet("set", SET_CMD_HELP) // [ help is no longer a flag but a flag modifier ]
+	set := flago.NewFlagSet("set", SET_CMD_HELP) // help flag is no longer needed
 	set.Bool("all", false, SET_ALL_HELP)
 	set.Str("title", "", SET_TITLE_HELP)
 	set.Int("score", 0, SET_SCORE_HELP)
 	set.Float("radian", 3.1416, SET_RADIAN_HELP)
-	set.SetStyle(flago.MODERN)
+	set.SetStyle(flago.MODERN_STYLE)
 
 	if action != "set" {
 		fmt.Printf("Invalid action %s\n", action)
