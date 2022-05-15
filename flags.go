@@ -7,14 +7,18 @@ const (
 	UNIX   ParseStyle = "UNIX"
 )
 
-type Datatype string
+type DataTypeName string
 
 const (
-	INT    Datatype = "int"
-	FLOAT  Datatype = "float"
-	BOOL   Datatype = "bool"
-	STRING Datatype = "string"
+	INT    DataTypeName = "int"
+	FLOAT  DataTypeName = "float"
+	BOOL   DataTypeName = "bool"
+	STRING DataTypeName = "string"
 )
+
+type FlagDataType interface {
+	int | float64 | string | bool
+}
 
 type FlagSet struct {
 	Name        string
@@ -22,29 +26,35 @@ type FlagSet struct {
 	ParsedFlags map[string]bool
 	Flags       map[string]*Flag
 	Style       ParseStyle
+	IsHelp      bool
+	HelpText    string
 }
 
 type Flag struct {
 	Name     string
 	Value    any
-	Datatype Datatype
+	Datatype DataTypeName
+	HelpText string
 }
 
-func NewFlagSet(name string) *FlagSet {
+func NewFlagSet(name string, helptext string) *FlagSet {
 	return &FlagSet{
 		Name:        name,
 		Parsed:      false,
 		ParsedFlags: make(map[string]bool),
 		Flags:       make(map[string]*Flag),
 		Style:       MODERN,
+		IsHelp:      false,
+		HelpText:    helptext,
 	}
 }
 
-func NewFlag(name string, defaultValue any, datatype Datatype) *Flag {
+func NewFlag[V FlagDataType](name string, value V, datatype DataTypeName, helptext string) *Flag {
 	return &Flag{
 		Name:     name,
-		Value:    defaultValue,
+		Value:    value,
 		Datatype: datatype,
+		HelpText: helptext,
 	}
 }
 
@@ -62,37 +72,46 @@ func (fs *FlagSet) SetStyle(style ParseStyle) {
 	fs.Style = style
 }
 
-func (fs *FlagSet) validateFlagValue(f_name, f_value string) error {
-	if f_value == "" {
-		return newEmptyFlagValueError(f_name)
+func (fs *FlagSet) GetFlag(flag_name string) (*Flag, bool) { // MAYBE RAISE AN ERROR FOR ACCESS AN UNKNOWN FLAG (?) <---
+	f, ok := fs.Flags[flag_name]
+	return f, ok
+}
+
+func (fs *FlagSet) validateFlagValue(flag_name, flag_value string) error {
+	if flag_value == "" {
+		return newEmptyFlagValueError(flag_name)
 	}
 
-	// Checks if the f_value is another flag (except for the help flag) only in MODERN style
-	if fs.isFlagName(f_value) && fs.Style == MODERN && f_value != "help" {
-		return newInvalidFlagAsValueError(f_name, f_value)
+	// Checks if the flag_value is another flag (only in MODERN style)
+	if fs.isFlagName(flag_value) && fs.Style == MODERN {
+		return newInvalidFlagAsValueError(flag_name, flag_value)
 	}
 
 	return nil
+}
+
+func (fs *FlagSet) setFlagAsParsed(flag_name string) {
+	fs.ParsedFlags[flag_name] = true
 }
 
 func (fs *FlagSet) addFlag(name string, f *Flag) {
 	fs.Flags[name] = f
 }
 
-func (fs *FlagSet) Int(name string, init int) {
-	fs.addFlag(name, NewFlag(name, init, INT))
+func (fs *FlagSet) Int(name string, init int, helptext string) {
+	fs.addFlag(name, NewFlag(name, init, INT, helptext))
 }
 
-func (fs *FlagSet) Float(name string, init float64) {
-	fs.addFlag(name, NewFlag(name, init, FLOAT))
+func (fs *FlagSet) Float(name string, init float64, helptext string) {
+	fs.addFlag(name, NewFlag(name, init, FLOAT, helptext))
 }
 
-func (fs *FlagSet) Bool(name string, init bool) {
-	fs.addFlag(name, NewFlag(name, init, BOOL))
+func (fs *FlagSet) Bool(name string, init bool, helptext string) {
+	fs.addFlag(name, NewFlag(name, init, BOOL, helptext))
 }
 
-func (fs *FlagSet) Str(name string, init string) {
-	fs.addFlag(name, NewFlag(name, init, STRING))
+func (fs *FlagSet) Str(name string, init string, helptext string) {
+	fs.addFlag(name, NewFlag(name, init, STRING, helptext))
 }
 
 func tryGetType[T any](v any) T {

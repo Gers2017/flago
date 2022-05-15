@@ -1,7 +1,6 @@
 package flago
 
 func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
-	fs.Parsed = true
 	args_copy := copy(args_to_parse)
 
 	// clean args
@@ -11,83 +10,84 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 
 	for i, arg := range args_copy {
 		var flag_name string
-		var f_value string
+		var flag_value string
+		var is_help bool
 
 		if fs.Style == MODERN {
-			// --- MODERN STYLE
 
-			flag_name = arg
-			if !fs.isFlagName(flag_name) { // Skip if is not a flag
-				continue
-			}
-			f_value = getNextValue(args_copy, i)
+			flag_name, flag_value, is_help = parseFlagModernStyle(arg, args_copy, i)
 
-			// ----
 		} else if fs.Style == UNIX {
-			// --- UNIX STYLE
 
-			flag_name, f_value = extractValues(arg)
-			if !fs.isFlagName(flag_name) { // Skip if is not a flag
-				continue
-			}
+			flag_name, flag_value, is_help = parseFlagUnixStyle(arg)
 
-			// ----
 		}
 
-		f_err := fs.validateFlagValue(flag_name, f_value)
-		is_skip_parse := f_value == "help"
+		if !fs.isFlagName(flag_name) && !is_help {
+			continue // Skip if flag_name is not a flag and is not help
+		}
 
-		f := fs.Flags[flag_name]
+		flag := fs.Flags[flag_name]
 
-		switch f.Datatype {
+		if is_help {
+			fs.IsHelp = true
+			fs.setFlagAsParsed(flag_name)
+			continue // skip checking flag_value and assigning values
+		}
+
+		f_err := fs.validateFlagValue(flag_name, flag_value)
+
+		switch flag.Datatype {
 		case "bool":
-			f.Value = true
+			flag.Value = true
 		case "string":
 			if f_err != nil {
 				return f_err
 			}
 
-			if is_skip_parse {
-				break
-			}
-
-			f.Value = f_value
+			flag.Value = flag_value
 		case "int":
 			if f_err != nil {
 				return f_err
 			}
 
-			if is_skip_parse {
-				break
-			}
-
-			value, err := parseInt(f_value)
+			value, err := parseInt(flag_value)
 			if err != nil {
-				return newParseError(f_value, "int")
+				return newParseError(flag_value, "int")
 			}
 
-			f.Value = value
+			flag.Value = value
 		case "float":
 			if f_err != nil {
 				return f_err
 			}
 
-			if is_skip_parse {
-				break
-			}
-
-			value, err := parseFloat(f_value)
+			value, err := parseFloat(flag_value)
 			if err != nil {
-				return newParseError(f_value, "float")
+				return newParseError(flag_value, "float")
 			}
 
-			f.Value = value
+			flag.Value = value
 		default:
-			return newUnexpectedDataTypeError(string(f.Datatype), f.Name)
+			return newUnexpectedDataTypeError(string(flag.Datatype), flag.Name)
 		}
 
-		fs.ParsedFlags[flag_name] = true
+		fs.setFlagAsParsed(flag_name)
 	}
 
+	fs.Parsed = true
 	return nil
+}
+
+func parseFlagModernStyle(arg string, args_copy []string, i int) (flag_name string, flag_value string, is_help bool) {
+	flag_name = arg
+	flag_value = getNextValue(args_copy, i)
+	is_help = isHelpValue(flag_value)
+	return
+}
+
+func parseFlagUnixStyle(arg string) (flag_name string, flag_value string, is_help bool) {
+	flag_name, flag_value = extractValues(arg)
+	is_help = isHelpValue(flag_name)
+	return
 }

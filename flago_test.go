@@ -11,13 +11,23 @@ type flagTest struct {
 	expected any
 }
 
-func TestModernParsing(t *testing.T) {
-	args := strings.Split("nil score 300 radian 6.28 name lazy-dog help", " ")
-	set := NewFlagSet("set")
-	set.Int("score", 0)
-	set.Float("radian", 0)
-	set.Str("name", "")
-	set.Bool("help", false)
+const (
+	SET_CMD_HELP    = "USAGE: set [all | score | radian | title]\nAvailable commands: all, score, radian, title, help"
+	SET_ALL_HELP    = "<Prints set all help>"
+	SET_SCORE_HELP  = "<Prints set score help>"
+	SET_RADIAN_HELP = "<Prints set radian help>"
+	SET_TITLE_HELP  = "<Prints set title help>"
+)
+
+func split(s string) []string {
+	return strings.Split(s, " ")
+}
+
+func TestHelpParsing(t *testing.T) {
+	args := split("all radian help")
+	set := NewFlagSet("set", SET_CMD_HELP)
+	set.Bool("all", false, SET_ALL_HELP)
+	set.Float("radian", 0.0, SET_RADIAN_HELP)
 	set.SetStyle(MODERN)
 
 	err := set.ParseFlags(args)
@@ -25,11 +35,41 @@ func TestModernParsing(t *testing.T) {
 		t.Error(err)
 	}
 
+	flag_names := split("all radian")
+
+	for _, flag_name := range flag_names {
+		if !set.HasFlag(flag_name) {
+			t.Errorf("set flagset should have the flag \"%s\"", flag_name)
+		}
+	}
+
+	if !set.IsHelp {
+		t.Errorf("Help for \"%s\" flag should be true", set.Name)
+	}
+}
+
+func TestModernParsing(t *testing.T) {
+	args := split("score 300 radian 6.28 title lazy-dog help")
+	set := NewFlagSet("set", SET_CMD_HELP)
+	set.Bool("all", false, SET_ALL_HELP)
+	set.Int("score", 0, SET_SCORE_HELP)
+	set.Float("radian", 0, SET_RADIAN_HELP)
+	set.Str("title", "", SET_TITLE_HELP)
+	set.SetStyle(MODERN)
+
+	err := set.ParseFlags(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !set.IsHelp {
+		t.Error("Error at parsing help modifier")
+	}
+
 	f_tests := []flagTest{
 		{"score", set.GetInt("score"), 300},
 		{"radian", set.GetFloat("radian"), 6.28},
-		{"name", set.GetStr("name"), "lazy-dog"},
-		{"help", set.GetBool("help"), true},
+		{"title", set.GetStr("title"), "lazy-dog"},
 	}
 
 	for _, f_test := range f_tests {
@@ -40,12 +80,12 @@ func TestModernParsing(t *testing.T) {
 }
 
 func TestUnixParsing(t *testing.T) {
-	args := strings.Split("nil score=300 radian=6.28 name=lazy-dog help", " ")
-	set := NewFlagSet("set")
-	set.Int("score", 0)
-	set.Float("radian", 0)
-	set.Str("name", "")
-	set.Bool("help", false)
+	args := split("nil score=300 radian=6.28 title=lazy-dog help")
+	set := NewFlagSet("set", SET_CMD_HELP)
+	set.Bool("all", false, SET_ALL_HELP)
+	set.Int("score", 0, SET_SCORE_HELP)
+	set.Float("radian", 0, SET_RADIAN_HELP)
+	set.Str("title", "", SET_TITLE_HELP)
 	set.SetStyle(UNIX)
 
 	err := set.ParseFlags(args)
@@ -53,11 +93,14 @@ func TestUnixParsing(t *testing.T) {
 		t.Error(err)
 	}
 
+	if !set.IsHelp {
+		t.Error("Error at parsing help modifier")
+	}
+
 	f_tests := []flagTest{
 		{"score", set.GetInt("score"), 300},
 		{"radian", set.GetFloat("radian"), 6.28},
-		{"name", set.GetStr("name"), "lazy-dog"},
-		{"help", set.GetBool("help"), true},
+		{"title", set.GetStr("title"), "lazy-dog"},
 	}
 
 	for _, f_test := range f_tests {
@@ -69,9 +112,9 @@ func TestUnixParsing(t *testing.T) {
 
 func TestExtractValues(t *testing.T) {
 	extract_tests := []struct {
-		flag    string
-		f_name  string
-		f_value string
+		flag       string
+		flag_name  string
+		flag_value string
 	}{
 		{"title=The-lazy-dog", "title", "The-lazy-dog"},
 		{"score=300", "score", "300"},
@@ -81,30 +124,29 @@ func TestExtractValues(t *testing.T) {
 	}
 
 	for _, test := range extract_tests {
-		f_name, f_value := extractValues(test.flag)
+		flag_name, flag_value := extractValues(test.flag)
 
-		if f_name != test.f_name {
-			t.Errorf("Wrong extracted flag name. Expected: \"%v\" Got: \"%v\"", test.f_name, f_name)
+		if flag_name != test.flag_name {
+			t.Errorf("Wrong extracted flag name. Expected: \"%v\" Got: \"%v\"", test.flag_name, flag_name)
 		}
 
-		if f_value != test.f_value {
-			t.Errorf("Wrong extracted flag value. Expected: \"%v\" Got: \"%v\"", test.f_value, f_value)
+		if flag_value != test.flag_value {
+			t.Errorf("Wrong extracted flag value. Expected: \"%v\" Got: \"%v\"", test.flag_value, flag_value)
 		}
 	}
 }
 
 func TestIsFlag(t *testing.T) {
-	get := NewFlagSet("get")
-	get.Int("score", 0)
-	get.Float("radian", 0)
-	get.Str("name", "")
-	get.Bool("help", false)
+	set := NewFlagSet("set", SET_CMD_HELP)
+	set.Int("score", 0, SET_SCORE_HELP)
+	set.Float("radian", 0, SET_RADIAN_HELP)
+	set.Str("title", "", SET_TITLE_HELP)
 
-	flag_names := []string{"score", "radian", "name", "help"}
+	flag_names := split("score radian title")
 
-	for _, f_name := range flag_names {
-		if !get.isFlagName(f_name) {
-			t.Fatalf("%s flag should be regsitered", f_name)
+	for _, flag_name := range flag_names {
+		if !set.isFlagName(flag_name) {
+			t.Fatalf("%s flag should be regsitered", flag_name)
 		}
 	}
 }
@@ -112,25 +154,25 @@ func TestIsFlag(t *testing.T) {
 func TestValidateFlagValue(t *testing.T) {
 	my_flag := "score"
 	other_flag := "size"
-	get := NewFlagSet("get")
-	get.Int(my_flag, 0)
-	get.Float(other_flag, 39.89)
+	set := NewFlagSet("set", "Help for set flagset")
+	set.Int(my_flag, 0, "Help text for my_flag!")
+	set.Float(other_flag, 39.89, "Help text for other_flag!")
 
-	if err := get.validateFlagValue(my_flag, other_flag); err == nil {
+	if err := set.validateFlagValue(my_flag, other_flag); err == nil {
 		t.Errorf("Invalid value [%s]. Flag cannot be a value", other_flag)
 	}
 
-	if err := get.validateFlagValue(my_flag, ""); err == nil {
+	if err := set.validateFlagValue(my_flag, ""); err == nil {
 		t.Errorf("Invalid flag value for %s. Flag cannot be empty", my_flag)
 	}
 }
 
 func TestInvalidDataType(t *testing.T) {
 	args := []string{"foo"}
-	get := NewFlagSet("get")
-	get.addFlag("foo", NewFlag("foo", false, "nil"))
+	set := NewFlagSet("set", "")
+	set.addFlag("foo", NewFlag("foo", false, "nil", ""))
 
-	if err := get.ParseFlags(args); err == nil {
+	if err := set.ParseFlags(args); err == nil {
 		t.Error("ParseFlags should return an UnexpectedDataTypeError")
 	}
 }

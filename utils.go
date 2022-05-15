@@ -26,17 +26,21 @@ func getArg(args []string, i int) (string, bool) {
 }
 
 func getNextValue(args_copy []string, i int) string {
-	f_value, _ := getArg(args_copy, i+1)
-	return f_value
+	flag_value, _ := getArg(args_copy, i+1)
+	return flag_value
+}
+
+func isHelpValue(arg string) bool {
+	return arg == "help" || arg == "h"
 }
 
 func extractValues(flag string) (string, string) {
-	f_name, f_value, ok := strings.Cut(flag, "=")
+	flag_name, flag_value, ok := strings.Cut(flag, "=")
 	if !ok {
 		return flag, ""
 	}
 
-	return f_name, f_value
+	return flag_name, flag_value
 }
 
 func parseInt(s string) (int, error) {
