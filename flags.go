@@ -72,11 +72,6 @@ func (fs *FlagSet) SetStyle(style ParseStyle) {
 	fs.Style = style
 }
 
-func (fs *FlagSet) GetFlag(flag_name string) (*Flag, bool) { // MAYBE RAISE AN ERROR FOR ACCESS AN UNKNOWN FLAG (?) <---
-	f, ok := fs.Flags[flag_name]
-	return f, ok
-}
-
 func (fs *FlagSet) validateFlagValue(flag_name, flag_value string) error {
 	if flag_value == "" {
 		return newEmptyFlagValueError(flag_name)
@@ -114,22 +109,41 @@ func (fs *FlagSet) Str(name string, init string, helptext string) {
 	fs.addFlag(name, NewFlag(name, init, STRING, helptext))
 }
 
-func tryGetType[T any](v any) T {
+func tryGetType[T FlagDataType](v any) T {
 	t, ok := v.(T)
 	if !ok {
-		var def T
-		return def
+		var init T
+		return init
 	}
 	return t
 }
 
-func (fs *FlagSet) GetBool(key string) bool {
-	f, ok := fs.Flags[key]
-	if !ok {
-		return false
-	}
+func newEmptyFlag() *Flag {
+	return NewFlag("", false, BOOL, "")
+}
 
+func (fs *FlagSet) GetFlag(flag_name string) (*Flag, bool) {
+	if !fs.isFlagName(flag_name) {
+		return newEmptyFlag(), false
+	}
+	f, ok := fs.Flags[flag_name]
+	return f, ok
+}
+
+func (f *Flag) ToInt() int {
+	return tryGetType[int](f.Value)
+}
+
+func (f *Flag) ToFloat() float64 {
+	return tryGetType[float64](f.Value)
+}
+
+func (f *Flag) ToBool() bool {
 	return tryGetType[bool](f.Value)
+}
+
+func (f *Flag) ToStr() string {
+	return tryGetType[string](f.Value)
 }
 
 func (fs *FlagSet) GetInt(key string) int {
@@ -137,21 +151,29 @@ func (fs *FlagSet) GetInt(key string) int {
 	if !ok {
 		return 0
 	}
-	return tryGetType[int](f.Value)
+	return f.ToInt()
 }
 
 func (fs *FlagSet) GetFloat(key string) float64 {
 	f, ok := fs.Flags[key]
 	if !ok {
-		return 0
+		return f.ToFloat()
 	}
 	return tryGetType[float64](f.Value)
 }
 
+func (fs *FlagSet) GetBool(key string) bool {
+	f, ok := fs.GetFlag(key)
+	if !ok {
+		return false
+	}
+	return f.ToBool()
+}
+
 func (fs *FlagSet) GetStr(key string) string {
-	f, ok := fs.Flags[key]
+	f, ok := fs.GetFlag(key)
 	if !ok {
 		return ""
 	}
-	return tryGetType[string](f.Value)
+	return f.ToStr()
 }

@@ -23,33 +23,17 @@ func split(s string) []string {
 	return strings.Split(s, " ")
 }
 
-func TestHelpParsing(t *testing.T) {
-	args := split("all radian help")
+func TestIsHelpOnFlagSet(t *testing.T) {
 	set := NewFlagSet("set", SET_CMD_HELP)
-	set.Bool("all", false, SET_ALL_HELP)
-	set.Float("radian", 0.0, SET_RADIAN_HELP)
 	set.SetStyle(MODERN_STYLE)
-
-	err := set.ParseFlags(args)
-	if err != nil {
-		t.Error(err)
-	}
-
-	flag_names := split("all radian")
-
-	for _, flag_name := range flag_names {
-		if !set.HasFlag(flag_name) {
-			t.Errorf("set flagset should have the flag \"%s\"", flag_name)
-		}
-	}
-
+	set.ParseFlags(split("set help"))
 	if !set.IsHelp {
-		t.Errorf("Help for \"%s\" flag should be true", set.Name)
+		t.Errorf("IsHelp on set flagset should be %v. Instead got: %v", true, set.IsHelp)
 	}
 }
 
 func TestModernParsing(t *testing.T) {
-	args := split("score 300 radian 6.28 title lazy-dog help")
+	args := split("set all score 300 radian 6.28 title lazy-dog help")
 	set := NewFlagSet("set", SET_CMD_HELP)
 	set.Bool("all", false, SET_ALL_HELP)
 	set.Int("score", 0, SET_SCORE_HELP)
@@ -67,6 +51,7 @@ func TestModernParsing(t *testing.T) {
 	}
 
 	f_tests := []flagTest{
+		{"all", set.GetBool("all"), true},
 		{"score", set.GetInt("score"), 300},
 		{"radian", set.GetFloat("radian"), 6.28},
 		{"title", set.GetStr("title"), "lazy-dog"},
@@ -74,13 +59,13 @@ func TestModernParsing(t *testing.T) {
 
 	for _, f_test := range f_tests {
 		if f_test.got != f_test.expected {
-			t.Errorf("Flag %s should equal \"%v\" got \"%v\"", f_test.name, f_test.expected, f_test.got)
+			t.Errorf("Flag [%s] should equal \"%v\" got \"%v\"", f_test.name, f_test.expected, f_test.got)
 		}
 	}
 }
 
 func TestUnixParsing(t *testing.T) {
-	args := split("nil score=300 radian=6.28 title=lazy-dog help")
+	args := split("set all score=300 radian=6.28 title=lazy-dog help")
 	set := NewFlagSet("set", SET_CMD_HELP)
 	set.Bool("all", false, SET_ALL_HELP)
 	set.Int("score", 0, SET_SCORE_HELP)
@@ -98,6 +83,7 @@ func TestUnixParsing(t *testing.T) {
 	}
 
 	f_tests := []flagTest{
+		{"all", set.GetBool("all"), true},
 		{"score", set.GetInt("score"), 300},
 		{"radian", set.GetFloat("radian"), 6.28},
 		{"title", set.GetStr("title"), "lazy-dog"},
@@ -105,7 +91,7 @@ func TestUnixParsing(t *testing.T) {
 
 	for _, f_test := range f_tests {
 		if f_test.got != f_test.expected {
-			t.Errorf("Wrong value for flag %s Expected: \"%v\" Got: \"%v\"", f_test.name, f_test.expected, f_test.got)
+			t.Errorf("Flag [%s] should equal \"%v\" got \"%v\"", f_test.name, f_test.expected, f_test.got)
 		}
 	}
 }
@@ -174,5 +160,45 @@ func TestInvalidDataType(t *testing.T) {
 
 	if err := set.ParseFlags(args); err == nil {
 		t.Error("ParseFlags should return an UnexpectedDataTypeError")
+	}
+}
+
+func TestTryGetType(t *testing.T) {
+	type TypeTest[T any] struct {
+		value    T
+		asInt    int
+		asFloat  float64
+		asBool   bool
+		asString string
+	}
+
+	values := []TypeTest[any]{
+		{"hello", 0, 0.0, false, "hello"}, // string
+		{true, 0, 0.0, true, ""},          // bool
+		{420, 420, 0.0, false, ""},        // int
+		{33.56, 0, 33.56, false, ""},      // float
+	}
+
+	for _, v := range values {
+		asInt := tryGetType[int](v.value)
+		if asInt != v.asInt {
+			t.Errorf("Expected: %d Got: %d", v.asInt, asInt)
+		}
+
+		asFloat := tryGetType[float64](v.value)
+		if asFloat != v.asFloat {
+			t.Errorf("Expected: %f Got: %f", v.asFloat, asFloat)
+		}
+
+		asBool := tryGetType[bool](v.value)
+		if asBool != v.asBool {
+			t.Errorf("Expected: %v Got: %v", v.asBool, asBool)
+		}
+
+		asString := tryGetType[string](v.value)
+		if asString != v.asString {
+			t.Errorf("Expected: %s Got: %s", v.asString, asString)
+		}
+
 	}
 }

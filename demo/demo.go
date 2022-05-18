@@ -50,47 +50,47 @@ func main() {
 
 	if set.HasFlag("all") {
 
-		f, _ := set.GetFlag("all")
+		f, ok := set.GetFlag("all")
 
-		if isHelp {
+		if isHelp || !ok {
 			fmt.Println(f.HelpText)
 			return
 		}
 
-		fmt.Println("Set all todos!")
+		fmt.Println("Set all todos:", f.ToBool())
 
 	} else if set.HasFlag("title") {
 
-		f, _ := set.GetFlag("title")
+		f, ok := set.GetFlag("title")
 
-		if isHelp {
+		if isHelp || !ok {
 			fmt.Println(f.HelpText)
 			return
 		}
 
-		fmt.Println("Getting todo by title:", set.GetStr("title"))
+		fmt.Println("Getting todo by title:", f.ToStr())
 
 	} else if set.HasFlag("score") {
 
-		f, _ := set.GetFlag("score")
+		f, ok := set.GetFlag("score")
 
-		if isHelp {
+		if isHelp || !ok {
 			fmt.Println(f.HelpText)
 			return
 		}
 
-		fmt.Println("Score:", set.GetInt("score"))
+		fmt.Println("Score:", f.ToInt())
 
 	} else if set.HasFlag("radian") {
 
-		f, _ := set.GetFlag("radian")
+		f, ok := set.GetFlag("radian")
 
-		if isHelp {
+		if isHelp || !ok {
 			fmt.Println(f.HelpText)
 			return
 		}
 
-		fmt.Println("Radian:", set.GetFloat("radian"))
+		fmt.Println("Radian:", f.ToFloat())
 
 	} else {
 		fmt.Println(set.HelpText)

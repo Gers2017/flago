@@ -25,11 +25,6 @@ func getArg(args []string, i int) (string, bool) {
 	return args[i], true
 }
 
-func getNextValue(args_copy []string, i int) string {
-	flag_value, _ := getArg(args_copy, i+1)
-	return flag_value
-}
-
 func isHelpValue(arg string) bool {
 	return arg == "help" || arg == "h"
 }
