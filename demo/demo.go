@@ -9,6 +9,7 @@ import (
 
 func main() {
 	potato := flago.NewFlagSet("potato")
+
 	potato.Str("set-name", "", "Gives a name to your potato", func(f *flago.Flag) {
 		if potato.IsHelp {
 			fmt.Println(f.HelpText)
