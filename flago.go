@@ -9,27 +9,27 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 
 	for i, arg := range args_copy {
 		flag_name, flag_value := parseOneFlag(arg, args_copy, i, fs.Style)
-
-		is_help := isHelpValue(flag_name)
 		is_valid_flagname := fs.isFlagName(flag_name)
 
-		if !is_valid_flagname && !is_help {
+		if !is_valid_flagname {
 			continue
 		}
 
-		if is_help {
+		next_arg, _ := getArg(args_copy, i+1)
+
+		if isHelpValue(next_arg) && is_valid_flagname {
 			fs.IsHelp = true
-		}
-
-		if is_valid_flagname {
-			flag := fs.Flags[flag_name]
-			err := parseType(fs, flag, flag_name, flag_value)
-			if err != nil {
-				return err
-			}
-
 			fs.setFlagAsParsed(flag_name)
+			continue
 		}
+
+		flag := fs.Flags[flag_name]
+		err := parseType(fs, flag, flag_name, flag_value)
+		if err != nil {
+			return err
+		}
+
+		fs.setFlagAsParsed(flag_name)
 	}
 
 	fs.Parsed = true

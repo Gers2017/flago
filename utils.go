@@ -15,7 +15,10 @@ func copy[T any](slice []T) []T {
 
 func clean(s string) string {
 	s = strings.Trim(s, " ")
-	return strings.TrimPrefix(s, "-")
+	for strings.HasPrefix(s, "-") {
+		s = strings.TrimPrefix(s, "-")
+	}
+	return s
 }
 
 func getArg(args []string, i int) (string, bool) {
