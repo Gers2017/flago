@@ -12,7 +12,7 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 	tokens := getTokens(args_copy)
 
 	// filter by flag names
-	only_flags := make([]Token, 0)
+	only_flags := make([]token, 0)
 	for _, token := range tokens {
 		if fs.isFlag(token.name) {
 			only_flags = append(only_flags, token)
@@ -61,15 +61,15 @@ func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
 	return nil
 }
 
-type Token = struct {
+type token = struct {
 	name  string
 	value string
 }
 
-func getTokens(args []string) []Token {
-	tokens := make([]Token, 0)
+func getTokens(args []string) []token {
+	tokens := make([]token, 0)
 	for i := range args {
-		tokens = append(tokens, Token{name: getArg(args, i), value: getArg(args, i+1)})
+		tokens = append(tokens, token{name: getArg(args, i), value: getArg(args, i+1)})
 	}
 
 	return tokens
