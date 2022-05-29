@@ -1,89 +1,76 @@
 package flago
 
 func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
-	args_copy := copy(args_to_parse)
+	args_copy := copySlice(args_to_parse)
 
+	// remove flag prefix from args
 	for i, v := range args_copy {
-		args_copy[i] = clean(v)
+		args_copy[i] = removeFlagPrefix(v)
 	}
 
-	for i, arg := range args_copy {
-		flag_name, flag_value := parseOneFlag(arg, args_copy, i, fs.Style)
+	// get the tokens from args
+	tokens := getTokens(args_copy)
 
-		is_help := isHelpValue(flag_name)
-		is_valid_flagname := fs.isFlagName(flag_name)
+	// filter by flag names
+	only_flags := make([]Token, 0)
+	for _, token := range tokens {
+		if fs.isFlag(token.name) {
+			only_flags = append(only_flags, token)
+		}
+	}
 
-		if !is_valid_flagname && !is_help {
-			continue
+	tokens = only_flags
+
+	// parse tokens into flag
+	for _, token := range tokens {
+		name := token.name
+		value := token.value
+		flag := fs.Flags[name]
+
+		if flag.Datatype != "bool" && fs.isFlag(value) && value != "help" {
+			return newInvalidFlagAsValueError(name, value)
 		}
 
-		if is_help {
-			fs.IsHelp = true
-		}
-
-		if is_valid_flagname {
-			flag := fs.Flags[flag_name]
-			err := parseType(fs, flag, flag_name, flag_value)
+		switch flag.Datatype {
+		case "bool":
+			flag.Value = true
+		case "string":
+			flag.Value = value
+		case "int":
+			v, err := parseInt(value)
 			if err != nil {
-				return err
+				return newParseTypeError(value, "int")
 			}
 
-			fs.setFlagAsParsed(flag_name)
+			flag.Value = v
+
+		case "float":
+			v, err := parseFloat(value)
+			if err != nil {
+				return newParseTypeError(value, "float")
+			}
+
+			flag.Value = v
+
+		default:
+			return newUnknownDataTypeError(string(flag.Datatype), flag.Name)
 		}
-	}
-
-	fs.Parsed = true
-	return nil
-}
-
-func parseOneFlag(arg string, args_copy []string, i int, style ParseStyle) (flag_name string, flag_value string) {
-	if style == MODERN_STYLE {
-		flag_name = arg
-		nextValue, _ := getArg(args_copy, i+1)
-		flag_value = nextValue
-	} else if style == UNIX_STYLE {
-		flag_name, flag_value = extractValues(arg)
-	}
-	return
-}
-
-func parseType(fs *FlagSet, flag *Flag, flag_name, flag_value string) error {
-	f_err := fs.validateFlagValue(flag_name, flag_value)
-
-	switch flag.Datatype {
-	case "bool":
-		flag.Value = true
-	case "string":
-		if f_err != nil {
-			return f_err
-		}
-
-		flag.Value = flag_value
-	case "int":
-		if f_err != nil {
-			return f_err
-		}
-
-		value, err := parseInt(flag_value)
-		if err != nil {
-			return newParseError(flag_value, "int")
-		}
-
-		flag.Value = value
-	case "float":
-		if f_err != nil {
-			return f_err
-		}
-
-		value, err := parseFloat(flag_value)
-		if err != nil {
-			return newParseError(flag_value, "float")
-		}
-
-		flag.Value = value
-	default:
-		return newUnexpectedDataTypeError(string(flag.Datatype), flag.Name)
+		fs.setAsParsed(name)
 	}
 
 	return nil
+}
+
+type Token = struct {
+	name  string
+	value string
+}
+
+func getTokens(args []string) []Token {
+	tokens := make([]Token, 0)
+	for i := range args {
+		tokens = append(tokens, Token{name: getArg(args, i), value: getArg(args, i+1)})
+	}
+
+	return tokens
 }

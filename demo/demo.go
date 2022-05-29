@@ -3,96 +3,143 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	flago "github.com/Gers2017/flago"
 )
 
 const (
-	SET_CMD_HELP    = "USAGE: set [all | score | radian | title]\nAvailable commands: all, score, radian, title, help"
-	SET_ALL_HELP    = "<Prints set all help>"
-	SET_SCORE_HELP  = "<Prints set score help>"
-	SET_RADIAN_HELP = "<Prints set radian help>"
-	SET_TITLE_HELP  = "<Prints set title help>"
+	GET_CMD_HELP      = "USAGE: get [ all | primary | by-title | help ]\nAvailable flags: all, primary, by-title, help"
+	GET_ALL_HELP      = "Help for all flag: [ALL] [OPTIONS...]\nOptions: sort-by, reverse"
+	GET_PRIMARY_HELP  = "Help for primary flag: [PRIMARY] [OPTIONS...]\nPrints the todo with highest priority"
+	GET_BY_TITLE_HELP = "Help for by-title flag: [BY-TITLE] [OPTIONS...]\nPrints the todo with the matching title"
 )
 
-func main() {
-	args := os.Args
+type Todo struct {
+	title       string
+	description string
+	priority    int
+	completed   bool
+}
 
-	if len(args) <= 1 {
+func (t *Todo) String() string {
+	return fmt.Sprintf("[%s]%s -> %v\n%s", t.title, strings.Repeat("!", t.priority), t.completed, t.description)
+}
+
+func main() {
+	get := flago.NewFlagSet("get")
+	get.Bool("all", false)
+	get.Bool("reverse", false)
+	get.Str("sort-by", "title")
+	get.Str("by-title", "")
+	get.Bool("primary", false)
+	get.Bool("help", false)
+
+	args := os.Args
+	if len(args) <= 2 {
+		fmt.Println(GET_CMD_HELP)
 		return
 	}
 
 	action := args[1]
-	args_to_parse := args[1:]
+	args_to_parse := args[2:]
+	todos := []Todo{
+		{"foo", "describes foo", 3, false},
+		{"bar", "describes bar", 8, false},
+		{"yeet", "describes yeet", 2, false},
+		{"boo", "describes boo", 7, true},
+	}
 
-	set := flago.NewFlagSet("set", SET_CMD_HELP) // help flag is no longer needed
-	set.Bool("all", false, SET_ALL_HELP)
-	set.Str("title", "", SET_TITLE_HELP)
-	set.Int("score", 0, SET_SCORE_HELP)
-	set.Float("radian", 3.1416, SET_RADIAN_HELP)
-	set.SetStyle(flago.MODERN_STYLE)
-
-	if action != "set" {
+	if action != get.Name {
 		fmt.Printf("Invalid action %s\n", action)
+		fmt.Println(GET_CMD_HELP)
 		return
 	}
 
-	err := set.ParseFlags(args_to_parse)
-	if err != nil {
+	if err := get.ParseFlags(args_to_parse); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	isHelp := set.IsHelp
+	if get.IsParsed("all") {
 
-	fmt.Println("args:", args_to_parse)
-	fmt.Println("isHelp:", isHelp)
+		HandleAll(get, todos)
 
-	if set.HasFlag("all") {
+	} else if get.IsParsed("by-title") {
 
-		f, ok := set.GetFlag("all")
+		HandleByTitle(get, todos)
 
-		if isHelp || !ok {
-			fmt.Println(f.HelpText)
-			return
-		}
+	} else if get.IsParsed("primary") {
 
-		fmt.Println("Set all todos:", f.ToBool())
-
-	} else if set.HasFlag("title") {
-
-		f, ok := set.GetFlag("title")
-
-		if isHelp || !ok {
-			fmt.Println(f.HelpText)
-			return
-		}
-
-		fmt.Println("Getting todo by title:", f.ToStr())
-
-	} else if set.HasFlag("score") {
-
-		f, ok := set.GetFlag("score")
-
-		if isHelp || !ok {
-			fmt.Println(f.HelpText)
-			return
-		}
-
-		fmt.Println("Score:", f.ToInt())
-
-	} else if set.HasFlag("radian") {
-
-		f, ok := set.GetFlag("radian")
-
-		if isHelp || !ok {
-			fmt.Println(f.HelpText)
-			return
-		}
-
-		fmt.Println("Radian:", f.ToFloat())
+		HandleByPrimary(get, todos)
 
 	} else {
-		fmt.Println(set.HelpText)
+		fmt.Println(GET_CMD_HELP)
 	}
+}
+
+func HandleAll(fs *flago.FlagSet, todos []Todo) {
+	if fs.GetBool("help") {
+		fmt.Println(GET_ALL_HELP)
+		return
+	}
+
+	is_reverse := fs.GetBool("reverse")
+	sort_by := fs.GetStr("sort-by")
+
+	if sort_by == "title" {
+		sort.Slice(todos, func(i, j int) bool {
+			if is_reverse {
+				return todos[i].title > todos[j].title
+			}
+			return todos[i].title < todos[j].title
+		})
+	} else if sort_by == "priority" {
+		sort.Slice(todos, func(i, j int) bool {
+			if is_reverse {
+				return todos[i].priority < todos[j].priority
+			}
+			return todos[i].priority > todos[j].priority // highest priority
+		})
+	}
+
+	for _, x := range todos {
+		println(x.String())
+	}
+}
+
+func HandleByTitle(fs *flago.FlagSet, todos []Todo) {
+	if fs.GetBool("help") {
+		fmt.Println(GET_BY_TITLE_HELP)
+		return
+	}
+
+	title := fs.GetStr("by-title")
+	title = strings.ToLower(title)
+	filtered := make([]Todo, 0)
+
+	for _, todo := range todos {
+		if strings.ToLower(todo.title) == title {
+			filtered = append(filtered, todo)
+		}
+	}
+	if len(filtered) > 0 {
+		fmt.Println(filtered[0].String())
+	} else {
+		fmt.Printf("No title \"%s\" in todos\n", title)
+	}
+}
+
+func HandleByPrimary(fs *flago.FlagSet, todos []Todo) {
+	if fs.GetBool("help") {
+		fmt.Println(GET_PRIMARY_HELP)
+		return
+	}
+
+	sort.Slice(todos, func(i, j int) bool {
+		return todos[i].priority > todos[j].priority // highest priority
+	})
+
+	fmt.Println(todos[0].String())
 }

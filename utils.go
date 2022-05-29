@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func copy[T any](slice []T) []T {
+func copySlice[T any](slice []T) []T {
 	cp := make([]T, len(slice))
 	for i, v := range slice {
 		cp[i] = v
@@ -13,29 +13,18 @@ func copy[T any](slice []T) []T {
 	return cp
 }
 
-func clean(s string) string {
-	s = strings.Trim(s, " ")
-	return strings.TrimPrefix(s, "-")
+func removeFlagPrefix(s string) string {
+	for strings.HasPrefix(s, "-") {
+		s = strings.TrimPrefix(s, "-")
+	}
+	return s
 }
 
-func getArg(args []string, i int) (string, bool) {
+func getArg(args []string, i int) string {
 	if len(args) <= i {
-		return "", false
+		return ""
 	}
-	return args[i], true
-}
-
-func isHelpValue(arg string) bool {
-	return arg == "help" || arg == "h"
-}
-
-func extractValues(flag string) (string, string) {
-	flag_name, flag_value, ok := strings.Cut(flag, "=")
-	if !ok {
-		return flag, ""
-	}
-
-	return flag_name, flag_value
+	return args[i]
 }
 
 func parseInt(s string) (int, error) {
