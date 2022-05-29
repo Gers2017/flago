@@ -1,12 +1,5 @@
 package flago
 
-type ParseStyle string
-
-const (
-	MODERN_STYLE ParseStyle = "MODERN"
-	UNIX_STYLE   ParseStyle = "UNIX"
-)
-
 type DataTypeName string
 
 const (
@@ -22,91 +15,64 @@ type FlagDataType interface {
 
 type FlagSet struct {
 	Name        string
-	Parsed      bool
-	ParsedFlags map[string]bool
 	Flags       map[string]*Flag
-	Style       ParseStyle
-	IsHelp      bool
-	HelpText    string
+	ParsedFlags map[string]bool
 }
 
 type Flag struct {
 	Name     string
 	Value    any
 	Datatype DataTypeName
-	HelpText string
 }
 
-func NewFlagSet(name string, helptext string) *FlagSet {
+func NewFlagSet(name string) *FlagSet {
 	return &FlagSet{
 		Name:        name,
-		Parsed:      false,
-		ParsedFlags: make(map[string]bool),
 		Flags:       make(map[string]*Flag),
-		Style:       MODERN_STYLE,
-		IsHelp:      false,
-		HelpText:    helptext,
+		ParsedFlags: make(map[string]bool),
 	}
 }
 
-func NewFlag[V FlagDataType](name string, value V, datatype DataTypeName, helptext string) *Flag {
+func NewFlag[V FlagDataType](name string, value V, datatype DataTypeName) *Flag {
 	return &Flag{
 		Name:     name,
 		Value:    value,
 		Datatype: datatype,
-		HelpText: helptext,
 	}
 }
 
-func (fs *FlagSet) isFlagName(name string) bool {
+func (fs *FlagSet) isFlag(name string) bool {
 	_, ok := fs.Flags[name]
 	return ok
 }
 
-func (fs *FlagSet) HasFlag(name string) bool {
+func (fs *FlagSet) IsParsed(name string) bool {
 	_, ok := fs.ParsedFlags[name]
 	return ok
 }
 
-func (fs *FlagSet) SetStyle(style ParseStyle) {
-	fs.Style = style
-}
-
-func (fs *FlagSet) validateFlagValue(flag_name, flag_value string) error {
-	if flag_value == "" {
-		return newEmptyFlagValueError(flag_name)
-	}
-
-	// Checks if the flag_value is another flag (only in MODERN style)
-	if fs.isFlagName(flag_value) && fs.Style == MODERN_STYLE {
-		return newInvalidFlagAsValueError(flag_name, flag_value)
-	}
-
-	return nil
-}
-
-func (fs *FlagSet) setFlagAsParsed(flag_name string) {
-	fs.ParsedFlags[flag_name] = true
+func (fs *FlagSet) setAsParsed(name string) {
+	fs.ParsedFlags[name] = true
 }
 
 func (fs *FlagSet) addFlag(name string, f *Flag) {
 	fs.Flags[name] = f
 }
 
-func (fs *FlagSet) Int(name string, init int, helptext string) {
-	fs.addFlag(name, NewFlag(name, init, INT, helptext))
+func (fs *FlagSet) Int(name string, init int) {
+	fs.addFlag(name, NewFlag(name, init, INT))
 }
 
-func (fs *FlagSet) Float(name string, init float64, helptext string) {
-	fs.addFlag(name, NewFlag(name, init, FLOAT, helptext))
+func (fs *FlagSet) Float(name string, init float64) {
+	fs.addFlag(name, NewFlag(name, init, FLOAT))
 }
 
-func (fs *FlagSet) Bool(name string, init bool, helptext string) {
-	fs.addFlag(name, NewFlag(name, init, BOOL, helptext))
+func (fs *FlagSet) Bool(name string, init bool) {
+	fs.addFlag(name, NewFlag(name, init, BOOL))
 }
 
-func (fs *FlagSet) Str(name string, init string, helptext string) {
-	fs.addFlag(name, NewFlag(name, init, STRING, helptext))
+func (fs *FlagSet) Str(name string, init string) {
+	fs.addFlag(name, NewFlag(name, init, STRING))
 }
 
 func tryGetType[T FlagDataType](v any) T {
@@ -118,15 +84,8 @@ func tryGetType[T FlagDataType](v any) T {
 	return t
 }
 
-func newEmptyFlag() *Flag {
-	return NewFlag("", false, BOOL, "")
-}
-
-func (fs *FlagSet) GetFlag(flag_name string) (*Flag, bool) {
-	if !fs.isFlagName(flag_name) {
-		return newEmptyFlag(), false
-	}
-	f, ok := fs.Flags[flag_name]
+func (fs *FlagSet) GetFlag(name string) (*Flag, bool) {
+	f, ok := fs.Flags[name]
 	return f, ok
 }
 
@@ -147,33 +106,21 @@ func (f *Flag) ToStr() string {
 }
 
 func (fs *FlagSet) GetInt(key string) int {
-	f, ok := fs.Flags[key]
-	if !ok {
-		return 0
-	}
+	f := fs.Flags[key]
 	return f.ToInt()
 }
 
 func (fs *FlagSet) GetFloat(key string) float64 {
-	f, ok := fs.Flags[key]
-	if !ok {
-		return f.ToFloat()
-	}
+	f := fs.Flags[key]
 	return tryGetType[float64](f.Value)
 }
 
 func (fs *FlagSet) GetBool(key string) bool {
-	f, ok := fs.GetFlag(key)
-	if !ok {
-		return false
-	}
+	f := fs.Flags[key]
 	return f.ToBool()
 }
 
 func (fs *FlagSet) GetStr(key string) string {
-	f, ok := fs.GetFlag(key)
-	if !ok {
-		return ""
-	}
+	f := fs.Flags[key]
 	return f.ToStr()
 }
