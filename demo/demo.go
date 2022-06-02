@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	flago "github.com/Gers2017/flago"
+	"github.com/Gers2017/flago"
 )
 
 const (
