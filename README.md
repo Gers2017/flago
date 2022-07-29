@@ -27,22 +27,52 @@ Populate the flagset
 ```go
 get := flago.NewFlagSet("get")
 get.Bool("all", false)
-get.Bool("help", false)
+get.Switch("verbose") // Same as get.Bool("verbose", false)
+```
+### Builder
+```go
+get := flago.NewFlagSet("get").
+    Bool("all", false).
+    Switch("verbose") // Same as get.Bool("verbose", false)
+```
+### Using the Cli struct
+```go
+cli := flago.NewCli()
+cli.Handle(get, func(fs *flago.FlagSet) error {
+    HandleFlagset(fs) // do something with parsed get
+    return nil
+})
+
+if err := cli.Execute(os.Args); err != nil {
+    log.Fatal(err)
+}
 ```
 
+```go 
+func HandleFlagset(fs *flago.FlagSet) {
+    if fs.Bool("help") {
+		fmt.Println("Some helpful help message")
+		return
+	}
+
+    // Do something...
+    fmt.Println(todos)
+}
+```
+### Without the Cli struct
 Parse the arguments into flags
 ```go
 // os.Args = []string{ "cli", "all", "help" }
 if err := get.ParseFlags(os.Args[1:]); err != nil {
-    fmt.Println(err)
+    log.Fatal(err)
     return
 }
 ```
 
-Then use the updated flagset
+Then use the parsed flagset
 ```go
 if get.IsParsed("all") {
-    if get.GetBool("help") {
+    if get.Bool("help") {
         fmt.Println("Some helpful help message")
         return
     }
@@ -51,42 +81,47 @@ if get.IsParsed("all") {
 }
 ```
 
-
 ## Demo 🐲
 A complete example can be found **[here](./demo/demo.go)**
 
-## Extras
+### New FlagSet
+```go
+get := flago.NewFlagSet("get")
+```
 
-If you had a non-boolean flag you could use the IsParsed method to know if the flag is present as a valid flag.
+### Add flags
+```go
+get.SetSwitch("verbose")
+get.Int("x", 0)
+```
 
+### Check if a flag was parsed
 It's highly recommended to use this method to check first if a flag was parsed correctly.
 ```go
 get.IsParsed("your-flag-name")
 ```
-The Get[Bool, Int, Float, Str] methods are just a shortcut for:
+The `FlagSet.[Bool, Int, Float, Str]` methods are just a shortcut for:
+
+### Get values
 ```go
-f, _:= get.GetFlag("flag-name") // -> (f: Flag, exits: boolean)
-all := f.ToBool() // ToInt(), ToFloat(), ToStr()
+verbose := get.Bool("verbose")
+x := get.Int("x")
 ```
 
-If the `flag-name` is not registered in the flagset, you'll get an error at runtime.
+If the flag name inside the getter method is not registered in the flagset, you'll get an error at runtime.
 ```go
-// shortcut
-all := get.GetBool("flag-name")
+wrong := get.Bool("some-invalid-flag")
 ```
 
 ## About the API
 
 ### Why so many strings? Isn't that error-prone?
-1) 
-    Well that's on golang's generics.
-    Behind the scenes flago is using maps + generics + type parsing
+1) The `FlagSet.[Bool, Int, Float, Str]` method can raise an error at runtine (use `FlagSet.IsParsed` to avoid this)
+
+2)  A note on golang's generics
+    Behind the scenes flago uses maps + generics + type parsing
     The `Flag struct` contains a `Value` property of type `any`.
     
     Because if we try to use generics we'd need to declare a map for every type of flag inside Flagset, and `Flags map[string]*Flag` wouldn't work anymore leading to repeated code.
 
-    The flag module in the standard library solves this by using pointers to the underliying values. This with a more than a few flags tends to get messy.
-
-2) 
-    Yes I agree! You can mess up a name.
-    The good thing is that if you try to access a flag by a name that doesn't exist you'll get an error at runtime.
+    The flag module in the standard library solves this by using pointers to the underliying values.
