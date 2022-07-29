@@ -1,14 +1,10 @@
 package flago
 
 func (fs *FlagSet) ParseFlags(args []string) error {
-	cp := copySlice(args)
-
 	// remove flag prefix from args
-	for i, v := range cp {
-		cp[i] = removeFlagPrefix(v)
+	for i, v := range args {
+		args[i] = removeFlagPrefix(v)
 	}
-
-	args = cp
 
 	iter := newFlagIterator(args)
 	for !iter.is_empty() {
@@ -83,18 +79,6 @@ func (fi *flagIterator) next() (string, bool) {
 	s := fi.args[fi.index]
 	fi.index += 1
 	return s, true
-}
-
-func (fi *flagIterator) next_range(n int) ([]string, bool) {
-	res := []string{}
-	for i := 0; i < n; i++ {
-		ch, ok := fi.next()
-		if !ok {
-			return res, false
-		}
-		res = append(res, ch)
-	}
-	return res, true
 }
 
 func (fi *flagIterator) is_empty() bool {
