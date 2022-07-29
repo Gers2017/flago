@@ -9,6 +9,62 @@ const (
 	STRING DataTypeName = "string"
 )
 
+type HandlerFunc = func(fs *FlagSet) error
+
+type Cli struct {
+	flagsets   map[string]*FlagSet
+	handlers   map[string]HandlerFunc
+	subcommand string
+}
+
+func NewCli() *Cli {
+	return &Cli{
+		flagsets:   make(map[string]*FlagSet),
+		handlers:   make(map[string]func(fs *FlagSet) error),
+		subcommand: "",
+	}
+}
+
+func (cli *Cli) Execute(args []string) error {
+	if len(args) <= 2 {
+		return newCliError(cli)
+	}
+
+	subcommand := args[1]
+	fs, exits := cli.flagsets[subcommand]
+	if !exits {
+		return newCliError(cli)
+	}
+
+	if err := fs.ParseFlags(args[2:]); err != nil {
+		return err
+	}
+
+	action, ok := cli.handlers[subcommand]
+	if !ok {
+		return newCliError(cli)
+	}
+
+	return action(fs)
+}
+
+func (cli *Cli) Handle(flagset *FlagSet, handler HandlerFunc) {
+	if !flagset.hasFlag("bool") {
+		flagset.SetSwitch("help")
+	}
+
+	cli.flagsets[flagset.Name] = flagset
+	cli.handlers[flagset.Name] = handler
+}
+
+func (cli *Cli) flagsetKeys() []string {
+	keys := make([]string, 0, len(cli.flagsets))
+	for k := range cli.flagsets {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 type FlagDataType interface {
 	int | float64 | string | bool
 }
@@ -41,7 +97,7 @@ func NewFlag[V FlagDataType](name string, value V, datatype DataTypeName) *Flag 
 	}
 }
 
-func (fs *FlagSet) isFlag(name string) bool {
+func (fs *FlagSet) hasFlag(name string) bool {
 	_, ok := fs.Flags[name]
 	return ok
 }
@@ -59,20 +115,29 @@ func (fs *FlagSet) addFlag(name string, f *Flag) {
 	fs.Flags[name] = f
 }
 
-func (fs *FlagSet) Int(name string, init int) {
+func (fs *FlagSet) SetInt(name string, init int) *FlagSet {
 	fs.addFlag(name, NewFlag(name, init, INT))
+	return fs
 }
 
-func (fs *FlagSet) Float(name string, init float64) {
+func (fs *FlagSet) SetFloat(name string, init float64) *FlagSet {
 	fs.addFlag(name, NewFlag(name, init, FLOAT))
+	return fs
 }
 
-func (fs *FlagSet) Bool(name string, init bool) {
+func (fs *FlagSet) SetBool(name string, init bool) *FlagSet {
 	fs.addFlag(name, NewFlag(name, init, BOOL))
+	return fs
 }
 
-func (fs *FlagSet) Str(name string, init string) {
+func (fs *FlagSet) SetSwitch(name string) *FlagSet {
+	fs.addFlag(name, NewFlag(name, false, BOOL))
+	return fs
+}
+
+func (fs *FlagSet) SetStr(name string, init string) *FlagSet {
 	fs.addFlag(name, NewFlag(name, init, STRING))
+	return fs
 }
 
 func tryGetType[T FlagDataType](v any) T {
@@ -105,22 +170,22 @@ func (f *Flag) ToStr() string {
 	return tryGetType[string](f.Value)
 }
 
-func (fs *FlagSet) GetInt(key string) int {
+func (fs *FlagSet) Int(key string) int {
 	f := fs.Flags[key]
 	return f.ToInt()
 }
 
-func (fs *FlagSet) GetFloat(key string) float64 {
+func (fs *FlagSet) Float(key string) float64 {
 	f := fs.Flags[key]
 	return tryGetType[float64](f.Value)
 }
 
-func (fs *FlagSet) GetBool(key string) bool {
+func (fs *FlagSet) Bool(key string) bool {
 	f := fs.Flags[key]
 	return f.ToBool()
 }
 
-func (fs *FlagSet) GetStr(key string) string {
+func (fs *FlagSet) Str(key string) string {
 	f := fs.Flags[key]
 	return f.ToStr()
 }

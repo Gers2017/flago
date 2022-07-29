@@ -13,7 +13,7 @@ func (fs *FlagSet) ParseFlags(args []string) error {
 	iter := newFlagIterator(args)
 	for !iter.is_empty() {
 		key, ok := iter.next()
-		if !fs.isFlag(key) || !ok {
+		if !fs.hasFlag(key) || !ok {
 			continue
 		}
 
@@ -28,13 +28,12 @@ func (fs *FlagSet) ParseFlags(args []string) error {
 				return newMissingValueError(key, iter.index)
 			}
 
-			if fs.isFlag(value) && value != "help" {
+			if fs.hasFlag(value) && value != "help" {
 				return newInvalidFlagAsValueError(key, value)
 			}
 
 			switch data_type {
 			case "string":
-
 				flag.Value = value
 
 			case "int":
@@ -56,8 +55,9 @@ func (fs *FlagSet) ParseFlags(args []string) error {
 			default:
 				return newUnknownDataTypeError(string(data_type), flag.Name)
 			}
-			fs.setAsParsed(key)
 		}
+
+		fs.setAsParsed(key)
 	}
 
 	return nil

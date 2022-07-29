@@ -16,6 +16,10 @@ func newMissingValueError(name string, i int) error {
 	return fmt.Errorf("The key: %s is trying to access missing item at index: %d", name, i)
 }
 
+func newCliError(cli *Cli) error {
+	return fmt.Errorf("Available Subcommands: %v", cli.flagsetKeys())
+}
+
 type invalidFlagAsValueError struct {
 	name  string
 	value string
