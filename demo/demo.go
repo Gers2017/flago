@@ -28,65 +28,58 @@ func (t *Todo) String() string {
 }
 
 func main() {
-	get := flago.NewFlagSet("get")
-	get.Bool("all", false)
-	get.Bool("reverse", false)
-	get.Str("sort-by", "title")
-	get.Str("by-title", "")
-	get.Bool("primary", false)
-	get.Bool("help", false)
+	get := flago.NewFlagSet("get").
+		SetSwitch("all"). // SetSwitch shorthand for SetBool(<flagname>, false)
+		SetBool("reverse", false).
+		SetStr("sort-by", "title").
+		SetStr("by-title", "").
+		SetBool("primary", false).
+		SetSwitch("help") // Optional, cli adds a help flag if none was provided
 
 	args := os.Args
-	if len(args) <= 2 {
-		fmt.Println(GET_CMD_HELP)
-		return
-	}
 
-	action := args[1]
-	args_to_parse := args[2:]
 	todos := []Todo{
 		{"foo", "describes foo", 3, false},
 		{"bar", "describes bar", 8, false},
-		{"yeet", "describes yeet", 2, false},
-		{"boo", "describes boo", 7, true},
+		{"yeet", "describes yeet", 12, false},
+		{"boo", "describes boo", 9, true},
 	}
 
-	if action != get.Name {
-		fmt.Printf("Invalid action %s\n", action)
-		fmt.Println(GET_CMD_HELP)
-		return
-	}
+	cli := flago.NewCli()
+	cli.Handle(get, func(fs *flago.FlagSet) error {
+		HandleGet(fs, todos)
+		return nil
+	})
 
-	if err := get.ParseFlags(args_to_parse); err != nil {
+	if err := cli.Execute(args); err != nil {
 		fmt.Println(err)
-		return
 	}
+}
 
-	if get.IsParsed("all") {
+func HandleGet(fs *flago.FlagSet, todos []Todo) {
+	isAll := fs.IsParsed("all")
+	isByTitle := fs.IsParsed("by-title")
+	isPrimary := fs.IsParsed("primary")
 
-		HandleAll(get, todos)
-
-	} else if get.IsParsed("by-title") {
-
-		HandleByTitle(get, todos)
-
-	} else if get.IsParsed("primary") {
-
-		HandleByPrimary(get, todos)
-
+	if isAll {
+		HandleAll(fs, todos)
+	} else if isByTitle {
+		HandleByTitle(fs, todos)
+	} else if isPrimary {
+		HandleByPrimary(fs, todos)
 	} else {
 		fmt.Println(GET_CMD_HELP)
 	}
 }
 
 func HandleAll(fs *flago.FlagSet, todos []Todo) {
-	if fs.GetBool("help") {
+	if fs.Bool("help") {
 		fmt.Println(GET_ALL_HELP)
 		return
 	}
 
-	is_reverse := fs.GetBool("reverse")
-	sort_by := fs.GetStr("sort-by")
+	is_reverse := fs.Bool("reverse")
+	sort_by := fs.Str("sort-by")
 
 	if sort_by == "title" {
 		sort.Slice(todos, func(i, j int) bool {
@@ -110,13 +103,12 @@ func HandleAll(fs *flago.FlagSet, todos []Todo) {
 }
 
 func HandleByTitle(fs *flago.FlagSet, todos []Todo) {
-	if fs.GetBool("help") {
+	if fs.Bool("help") {
 		fmt.Println(GET_BY_TITLE_HELP)
 		return
 	}
 
-	title := fs.GetStr("by-title")
-	title = strings.ToLower(title)
+	title := strings.ToLower(fs.Str("by-title"))
 	filtered := make([]Todo, 0)
 
 	for _, todo := range todos {
@@ -124,6 +116,7 @@ func HandleByTitle(fs *flago.FlagSet, todos []Todo) {
 			filtered = append(filtered, todo)
 		}
 	}
+
 	if len(filtered) > 0 {
 		fmt.Println(filtered[0].String())
 	} else {
@@ -132,7 +125,7 @@ func HandleByTitle(fs *flago.FlagSet, todos []Todo) {
 }
 
 func HandleByPrimary(fs *flago.FlagSet, todos []Todo) {
-	if fs.GetBool("help") {
+	if fs.Bool("help") {
 		fmt.Println(GET_PRIMARY_HELP)
 		return
 	}

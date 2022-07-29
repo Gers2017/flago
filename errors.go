@@ -1,16 +1,23 @@
 package flago
 
 import (
-	"errors"
 	"fmt"
 )
 
 func newParseTypeError(value, datatype string) error {
-	return errors.New(fmt.Sprintf("Error at parsing value \"%s\" to datatype %s\n", value, datatype))
+	return fmt.Errorf("Error at parsing value \"%s\" to datatype %s\n", value, datatype)
 }
 
 func newUnknownDataTypeError(datatype, name string) error {
-	return errors.New(fmt.Sprintf("Unexpected datatype \"%s\" for flag of name %s", datatype, name))
+	return fmt.Errorf("Unexpected datatype \"%s\" for flag of name %s", datatype, name)
+}
+
+func newMissingValueError(name string, i int) error {
+	return fmt.Errorf("The key: %s is trying to access missing item at index: %d", name, i)
+}
+
+func newCliError(cli *Cli) error {
+	return fmt.Errorf("Available Subcommands: %v", cli.flagsetKeys())
 }
 
 type invalidFlagAsValueError struct {

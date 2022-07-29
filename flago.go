@@ -1,76 +1,102 @@
 package flago
 
-func (fs *FlagSet) ParseFlags(args_to_parse []string) error {
-	args_copy := copySlice(args_to_parse)
+func (fs *FlagSet) ParseFlags(args []string) error {
+	cp := copySlice(args)
 
 	// remove flag prefix from args
-	for i, v := range args_copy {
-		args_copy[i] = removeFlagPrefix(v)
+	for i, v := range cp {
+		cp[i] = removeFlagPrefix(v)
 	}
 
-	// get the tokens from args
-	tokens := getTokens(args_copy)
+	args = cp
 
-	// filter by flag names
-	only_flags := make([]token, 0)
-	for _, token := range tokens {
-		if fs.isFlag(token.name) {
-			only_flags = append(only_flags, token)
-		}
-	}
-
-	tokens = only_flags
-
-	// parse tokens into flag
-	for _, token := range tokens {
-		name := token.name
-		value := token.value
-		flag := fs.Flags[name]
-
-		if flag.Datatype != "bool" && fs.isFlag(value) && value != "help" {
-			return newInvalidFlagAsValueError(name, value)
+	iter := newFlagIterator(args)
+	for !iter.is_empty() {
+		key, ok := iter.next()
+		if !fs.hasFlag(key) || !ok {
+			continue
 		}
 
-		switch flag.Datatype {
-		case "bool":
+		flag := fs.Flags[key]
+		data_type := flag.Datatype
+
+		if data_type == "bool" {
 			flag.Value = true
-		case "string":
-			flag.Value = value
-		case "int":
-			v, err := parseInt(value)
-			if err != nil {
-				return newParseTypeError(value, "int")
+		} else {
+			value, ok := iter.next()
+			if !ok {
+				return newMissingValueError(key, iter.index)
 			}
 
-			flag.Value = v
-
-		case "float":
-			v, err := parseFloat(value)
-			if err != nil {
-				return newParseTypeError(value, "float")
+			if fs.hasFlag(value) && value != "help" {
+				return newInvalidFlagAsValueError(key, value)
 			}
 
-			flag.Value = v
+			switch data_type {
+			case "string":
+				flag.Value = value
 
-		default:
-			return newUnknownDataTypeError(string(flag.Datatype), flag.Name)
+			case "int":
+				int_value, err := parseInt(value)
+				if err != nil {
+					return newParseTypeError(value, "int")
+				}
+
+				flag.Value = int_value
+
+			case "float":
+				float_value, err := parseFloat(value)
+				if err != nil {
+					return newParseTypeError(value, "float")
+				}
+
+				flag.Value = float_value
+
+			default:
+				return newUnknownDataTypeError(string(data_type), flag.Name)
+			}
 		}
-		fs.setAsParsed(name)
+
+		fs.setAsParsed(key)
 	}
 
 	return nil
 }
 
-type token = struct {
-	name  string
-	value string
+type flagIterator struct {
+	args  []string
+	index int
+	max   int
 }
 
-func getTokens(args []string) []token {
-	tokens := make([]token, 0)
-	for i := range args {
-		tokens = append(tokens, token{name: getArg(args, i), value: getArg(args, i+1)})
+func newFlagIterator(args []string) flagIterator {
+	index := 0
+	max := len(args)
+	return flagIterator{args, index, max}
+}
+
+func (fi *flagIterator) next() (string, bool) {
+	if fi.is_empty() {
+		return "", false
 	}
 
-	return tokens
+	s := fi.args[fi.index]
+	fi.index += 1
+	return s, true
+}
+
+func (fi *flagIterator) next_range(n int) ([]string, bool) {
+	res := []string{}
+	for i := 0; i < n; i++ {
+		ch, ok := fi.next()
+		if !ok {
+			return res, false
+		}
+		res = append(res, ch)
+	}
+	return res, true
+}
+
+func (fi *flagIterator) is_empty() bool {
+	return fi.index >= fi.max
 }
